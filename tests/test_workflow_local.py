@@ -31,6 +31,7 @@ class WorkflowSmokeTests(unittest.TestCase):
         targets = (
             list((ROOT / "src").rglob("*.py"))
             + list((ROOT / "monitor").rglob("*"))
+            + list((ROOT / "scripts").rglob("*"))
             + list((ROOT / "configs").rglob("*.yaml"))
             + list((ROOT / "tests").rglob("*.py"))
             + [
