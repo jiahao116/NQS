@@ -1,4 +1,4 @@
-"""Neural Quantum State (NQS) wavefunction architectures: Causal GPT, ARNNDense, and RBM."""
+"""Neural Quantum State (NQS) wavefunction architectures: RBM, ARNNDense, and Causal Transformer."""
 
 from __future__ import annotations
 
@@ -7,22 +7,22 @@ from typing import Any
 from nqs.config import ExperimentConfig
 
 
-def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, Any, Any]:
+def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, Any, Any | None]:
     """Build (vstate, optimizer, preconditioner) for NetKet VMC."""
     import flax.linen as nn
     import jax
     import jax.numpy as jnp
     import netket as nk
 
-    class CausalGPTWaveFunction(nk.models.AbstractARNN):
-        """Autoregressive Causal Transformer (Mini-GPT) Neural Quantum State.
+    class CausalTransformerWaveFunction(nk.models.AbstractARNN):
+        """Autoregressive Causal Transformer (GPT-style) Neural Quantum State.
 
-        Factorizes the many-body wavefunction via the chain rule:
+        Factorizes the many-body wavefunction via the probability chain rule:
             psi(s_1, ..., s_N) = prod_{i=1}^N psi(s_i | s_1, ..., s_{i-1})
 
-        Because each site's amplitude/phase depends strictly on preceding spins (< i),
-        NetKet's ARDirectSampler draws 100% uncorrelated exact samples in O(N) forward passes
-        on GPU without Markov Chain Monte Carlo burn-in or autocorrelation!
+        Because each site's conditional amplitude/phase depends strictly on preceding
+        spins (< i), NetKet's ARDirectSampler draws uncorrelated exact samples on GPU
+        without Markov Chain Monte Carlo burn-in.
         """
 
         d_model: int = 32
@@ -34,12 +34,13 @@ def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, A
 
         @nn.compact
         def conditionals_log_psi(self, inputs: jax.Array) -> jax.Array:
-            # Handle both 1D (N,) and batched 2D (B, N) inputs safely
-            squeeze_batch = inputs.ndim == 1
-            x_in = inputs[None, :] if squeeze_batch else inputs
+            # Handle arbitrary leading batch dimensions: (N,), (B, N), or (C, S, N)
+            orig_batch_shape = inputs.shape[:-1]
+            n_sites = inputs.shape[-1]
+            x_in = inputs.reshape((-1, n_sites))
             x_in = self.reorder(x_in)
 
-            batch_size, n_sites = x_in.shape
+            batch_size = x_in.shape[0]
             local_size = self.hilbert.local_size
 
             # Strict right-shift by 1 site:
@@ -69,17 +70,14 @@ def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, A
             causal_mask = jnp.tril(jnp.ones((1, 1, n_sites, n_sites), dtype=bool))
 
             for layer_idx in range(self.n_layers):
-                # Pre-LayerNorm Causal Multi-Head Self-Attention
                 h_norm = nn.LayerNorm(name=f"ln1_{layer_idx}")(h)
                 attn_out = nn.MultiHeadDotProductAttention(
                     num_heads=self.n_heads,
                     qkv_features=self.d_model,
-                    deterministic=True,
                     name=f"attn_{layer_idx}",
-                )(h_norm, mask=causal_mask)
+                )(h_norm, h_norm, mask=causal_mask, deterministic=True)
                 h = h + attn_out
 
-                # Pre-LayerNorm Feed-Forward Network (GELU MLP)
                 h_norm2 = nn.LayerNorm(name=f"ln2_{layer_idx}")(h)
                 mlp_hidden = nn.Dense(self.d_model * self.mlp_ratio, name=f"mlp_fc1_{layer_idx}")(h_norm2)
                 mlp_hidden = nn.gelu(mlp_hidden)
@@ -99,15 +97,14 @@ def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, A
             else:
                 log_psi = log_amp
 
-            # Restore original spatial ordering if custom graph ordering is used
             log_psi = self.inverse_reorder(log_psi, axis=1)
-            return log_psi[0] if squeeze_batch else log_psi
+            return log_psi.reshape((*orig_batch_shape, n_sites, local_size))
 
     m_cfg = cfg.model
     t_cfg = cfg.training
 
     if m_cfg.ansatz == "gpt":
-        model = CausalGPTWaveFunction(
+        model = CausalTransformerWaveFunction(
             hilbert=hilbert,
             d_model=m_cfg.d_model,
             n_heads=m_cfg.n_heads,
@@ -158,6 +155,7 @@ def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, A
     else:
         optimizer = nk.optimizer.Sgd(learning_rate=t_cfg.learning_rate)
 
+    preconditioner: Any | None = None
     if t_cfg.use_sr:
         if holomorphic:
             preconditioner = nk.optimizer.SR(diag_shift=t_cfg.diag_shift, holomorphic=True)
@@ -167,7 +165,5 @@ def build_variational_state(cfg: ExperimentConfig, hilbert: Any) -> tuple[Any, A
                 diag_shift=t_cfg.diag_shift,
                 holomorphic=False,
             )
-    else:
-        preconditioner = nk.optimizer.identity_preconditioner
 
     return vstate, optimizer, preconditioner

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Google Cloud Always-Free VM (e2-micro, Ubuntu/Debian) 一键部署脚本
-# 作用：创建轻量 Python 虚拟环境并注册 systemd 守护进程，7x24 小时常驻监控 Colab
-# 用法：
-#   export WANDB_API_KEY="你的_WANDB_KEY"
-#   export NTFY_TOPIC="你自己起的手机推送频道名"
+# Google Cloud VM (Ubuntu/Debian) One-Click Watchdog Setup Script
+# Installs a minimal Python venv and registers a systemd background daemon.
+#
+# Usage:
+#   export WANDB_API_KEY="your_wandb_api_key"
+#   export NTFY_TOPIC="your-private-ntfy-topic"
 #   bash monitor/setup_gcp_vm.sh
 # ==============================================================================
 set -euo pipefail
@@ -13,22 +14,22 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VENV_DIR="${REPO_DIR}/.venv-monitor"
 
 if [[ -z "${WANDB_API_KEY:-}" ]]; then
-  echo "❌ 请先设置环境变量: export WANDB_API_KEY='你的_W&B_API_Key'"
+  echo "ERROR: Please set WANDB_API_KEY first: export WANDB_API_KEY='your_key'"
   exit 1
 fi
 
-echo "[1/4] 安装基础 Python venv 支持..."
+echo "[1/4] Installing python3-venv and pip..."
 sudo apt-get update -qq
 sudo apt-get install -y -qq python3-venv python3-pip
 
-echo "[2/4] 创建超轻量监控虚拟环境 (${VENV_DIR})..."
+echo "[2/4] Creating lightweight monitor venv at ${VENV_DIR}..."
 python3 -m venv "${VENV_DIR}"
 "${VENV_DIR}/bin/pip" install --upgrade pip -q
 "${VENV_DIR}/bin/pip" install -r "${REPO_DIR}/requirements-monitor.txt" -q
 
 if [[ ! -f "${REPO_DIR}/monitor/monitor_config.yaml" ]]; then
   cp "${REPO_DIR}/monitor/monitor_config.example.yaml" "${REPO_DIR}/monitor/monitor_config.yaml"
-  echo "已生成默认配置: ${REPO_DIR}/monitor/monitor_config.yaml"
+  echo "Created default config: ${REPO_DIR}/monitor/monitor_config.yaml"
 fi
 
 ENV_FILE="${REPO_DIR}/.env"
@@ -38,7 +39,7 @@ NTFY_TOPIC=${NTFY_TOPIC:-}
 EOF
 chmod 600 "${ENV_FILE}"
 
-echo "[3/4] 注册 systemd 开机自启守护服务 (nqs-watchdog.service)..."
+echo "[3/4] Registering systemd service (nqs-watchdog.service)..."
 SERVICE_FILE="/etc/systemd/system/nqs-watchdog.service"
 sudo tee "${SERVICE_FILE}" > /dev/null <<EOF
 [Unit]
@@ -59,12 +60,12 @@ RestartSec=15
 WantedBy=multi-user.target
 EOF
 
-echo "[4/4] 启动服务并查看状态..."
+echo "[4/4] Enabling and starting nqs-watchdog.service..."
 sudo systemctl daemon-reload
 sudo systemctl enable --now nqs-watchdog.service
 sudo systemctl status nqs-watchdog.service --no-pager
 
 echo ""
-echo "✅ 部署完成！常用命令："
-echo "  查看实时监控日志 : journalctl -u nqs-watchdog -f"
-echo "  打印当前实验报表 : ${VENV_DIR}/bin/python ${REPO_DIR}/monitor/gcp_watchdog.py --once --markdown"
+echo "Setup complete! Useful commands:"
+echo "  Stream live logs : journalctl -u nqs-watchdog -f"
+echo "  Print status MD  : ${VENV_DIR}/bin/python ${REPO_DIR}/monitor/gcp_watchdog.py --once --markdown"

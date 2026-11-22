@@ -1,29 +1,28 @@
 # ==============================================================================
-# 入门推荐实验 #1：一维临界横场伊辛模型 (1D Critical TFIM, L=12, h=1.0)
-# 波函数架构：Causal GPT (自回归 Transformer 量子态 + 精确直接采样 ARDirectSampler)
-# 预计 Colab T4 GPU 耗时：约 45 ~ 90 秒（含首次 JAX XLA 编译时间）
-# 验收标准：相对精确解误差 rel_error 降到 1e-3 ~ 1e-4 量级，能量曲线贴合精确红虚线
+# Modern Autoregressive Benchmark #2: 1D Critical TFIM (L=12, h=1.0)
+# Ansatz: Causal Transformer (ARNN) + Exact Direct Sampling (ARDirectSampler)
+# Expected Colab T4 GPU runtime: ~45-90 seconds
 # ==============================================================================
 
 system:
   hamiltonian: tfim_1d
   n_spins: 12
-  h_field: 1.0          # 量子相变临界点 (h/J = 1.0)，纠缠最强、最适合测试神经网络表达能力
+  h_field: 1.0
   j_coupling: 1.0
   periodic: true
-  compute_exact: true   # 自动用 Lanczos 精确对角化算出真实基态能量 E0 作为标准答案
+  compute_exact: true
 
 model:
-  ansatz: gpt           # 使用 Mini-GPT 自回归波函数 (CausalGPTWaveFunction)
+  ansatz: gpt           # Causal Transformer autoregressive wavefunction
   d_model: 32
   n_heads: 4
   n_layers: 2
   mlp_ratio: 2
-  use_phase: false      # 横场伊辛模型基态恒为正实数 (Perron-Frobenius 定理)，无需复相位头
+  use_phase: false      # Real positive ground state for TFIM (Perron-Frobenius)
 
 training:
   seed: 42
-  n_samples: 1024       # 每步直接从 GPT 精确无偏采样 1024 个独立自旋构型（无需 MCMC 热化）
+  n_samples: 1024       # Independent direct samples per step (no MCMC burn-in)
   n_steps: 400
   optimizer: adam
   learning_rate: 0.002
@@ -31,10 +30,10 @@ training:
   target_rel_error: 0.0005
 
 telemetry:
-  experiment_name: tfim1d_L12_gpt
+  experiment_name: tfim1d_L12_transformer
   wandb_project: nqs-colab
   use_wandb: true
-  log_every: 10         # 每 10 步上报一次能量曲线与心跳
-  checkpoint_every: 50  # 每 50 步自动保存断点（支持断网/Colab 掉线无缝续算）
+  log_every: 10
+  checkpoint_every: 50
   checkpoint_dir: checkpoints
   upload_wandb_checkpoint: true

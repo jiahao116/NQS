@@ -1,10 +1,11 @@
-"""Local smoke tests (no GPU or NetKet required) for configs, notebook syntax, and GCP watchdog logic."""
+"""Local smoke tests (no GPU or NetKet required) for configs, notebook syntax, English-only code rule, and watchdog."""
 
 from __future__ import annotations
 
 import ast
 import json
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -15,6 +16,8 @@ sys.path.insert(0, str(ROOT))
 from monitor.gcp_watchdog import classify_run_health
 from nqs.config import ExperimentConfig, ModelConfig, SystemConfig
 
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+
 
 class WorkflowSmokeTests(unittest.TestCase):
     def test_all_python_sources_compile(self) -> None:
@@ -23,6 +26,28 @@ class WorkflowSmokeTests(unittest.TestCase):
         for path in py_files:
             source = path.read_text(encoding="utf-8")
             ast.parse(source, filename=str(path))
+
+    def test_code_and_config_files_are_english_only(self) -> None:
+        targets = (
+            list((ROOT / "src").rglob("*.py"))
+            + list((ROOT / "monitor").rglob("*"))
+            + list((ROOT / "configs").rglob("*.yaml"))
+            + list((ROOT / "tests").rglob("*.py"))
+            + [
+                ROOT / "notebooks" / "colab_runner.ipynb",
+                ROOT / "pyproject.toml",
+                ROOT / "requirements-colab.txt",
+                ROOT / "requirements-monitor.txt",
+            ]
+        )
+        for path in targets:
+            if not path.is_file() or "__pycache__" in path.parts:
+                continue
+            text = path.read_text(encoding="utf-8")
+            self.assertIsNone(
+                CJK_RE.search(text),
+                msg=f"Found non-English CJK characters in code/config file: {path}",
+            )
 
     def test_colab_notebook_valid_and_cells_parse(self) -> None:
         nb_path = ROOT / "notebooks" / "colab_runner.ipynb"
@@ -64,11 +89,11 @@ class WorkflowSmokeTests(unittest.TestCase):
         key, _ = classify_run_health(
             {
                 "id": "r1",
-                "name": "tfim_gpt",
+                "name": "tfim_rbm",
                 "wandb_state": "running",
                 "status": "running",
                 "last_step": 100,
-                "total_steps": 400,
+                "total_steps": 300,
                 "heartbeat_unix": now - 45,
                 "energy_mean": -15.31,
                 "rel_error": 8e-4,
@@ -82,11 +107,11 @@ class WorkflowSmokeTests(unittest.TestCase):
         key, msg = classify_run_health(
             {
                 "id": "r1",
-                "name": "tfim_gpt",
+                "name": "tfim_rbm",
                 "wandb_state": "running",
                 "status": "running",
                 "last_step": 150,
-                "total_steps": 400,
+                "total_steps": 300,
                 "heartbeat_unix": now - 600,
                 "energy_mean": -15.32,
             },
@@ -94,7 +119,7 @@ class WorkflowSmokeTests(unittest.TestCase):
             stale_timeout_sec=300,
         )
         self.assertEqual(key, "stale_150")
-        self.assertIn("疑似断连", msg)
+        self.assertIn("DISCONNECTED", msg)
 
         # 3. NaN divergence
         key, _ = classify_run_health(
@@ -104,7 +129,7 @@ class WorkflowSmokeTests(unittest.TestCase):
                 "wandb_state": "failed",
                 "status": "diverged_nan",
                 "last_step": 30,
-                "total_steps": 400,
+                "total_steps": 300,
             },
             now_unix=now,
             stale_timeout_sec=300,
@@ -118,8 +143,8 @@ class WorkflowSmokeTests(unittest.TestCase):
                 "name": "done_run",
                 "wandb_state": "finished",
                 "status": "completed",
-                "last_step": 400,
-                "total_steps": 400,
+                "last_step": 300,
+                "total_steps": 300,
                 "energy_mean": -15.32259,
                 "rel_error": 1.2e-5,
             },

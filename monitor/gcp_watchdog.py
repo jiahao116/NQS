@@ -1,9 +1,9 @@
-"""Lightweight 24/7 Cloud Watchdog for monitoring Google Colab NQS runs from a GCP e2-micro VM.
+"""Lightweight 24/7 Cloud Watchdog for monitoring Google Colab NQS runs from a GCP VM.
 
 Memory footprint: < 40 MB RAM (no browser, no GPU, ToS-compliant via W&B telemetry API).
 Detects:
   1. Run completion + physics accuracy summary (E_NQS vs E_exact, V-score)
-  2. Colab disconnect / stale heartbeat (e.g. home PC lost power & Colab kernel timed out)
+  2. Colab disconnect / stale heartbeat
   3. Run resumption after checkpoint recovery
   4. NaN divergence or crash
 """
@@ -27,8 +27,8 @@ class WatchdogConfig:
     poll_interval_sec: int = 120
     stale_timeout_sec: int = 360   # 6 minutes without heartbeat => Colab likely disconnected
     max_runs_to_check: int = 10
-    ntfy_topic: str | None = None  # e.g. "nqs-alert-hsan-9823" -> pushes to https://ntfy.sh/<topic>
-    webhook_url: str | None = None # Optional Discord / Slack / Feishu webhook URL
+    ntfy_topic: str | None = None  # e.g. "nqs-alert-jiahao116-9823" -> https://ntfy.sh/<topic>
+    webhook_url: str | None = None # Optional Discord / Slack / custom webhook URL
     state_file: str = "monitor/.watchdog_state.json"
 
 
@@ -46,7 +46,6 @@ def load_watchdog_config(path: str | Path | None) -> WatchdogConfig:
             if hasattr(cfg, k) and v is not None:
                 setattr(cfg, k, v)
 
-    # Environment variable overrides
     if os.environ.get("WANDB_PROJECT"):
         cfg.wandb_project = os.environ["WANDB_PROJECT"]
     if os.environ.get("WANDB_ENTITY"):
@@ -63,13 +62,7 @@ def classify_run_health(
     now_unix: float,
     stale_timeout_sec: int,
 ) -> tuple[str, str]:
-    """Pure function classifying a run's health into (event_key, human_message).
-
-    `run_info` keys:
-      id, name, wandb_state ("running"|"finished"|"crashed"|"failed"),
-      status (from summary), last_step, total_steps, heartbeat_unix,
-      energy_mean, rel_error, v_score, url
-    """
+    """Pure function classifying a run's health into (event_key, human_message)."""
     name = run_info.get("name") or run_info.get("id", "unknown")
     w_state = run_info.get("wandb_state", "unknown")
     summary_status = run_info.get("status", "")
@@ -94,22 +87,23 @@ def classify_run_health(
     if summary_status == "diverged_nan":
         return (
             "diverged_nan",
-            f"🚨 [NQS 发散告警] 实验 `{name}` 在第 {step}/{total} 步出现 NaN！请调小 learning_rate。{url}",
+            f"[ALERT: NaN Diverged] Run '{name}' hit NaN at step {step}/{total}. "
+            f"Consider lowering learning_rate. {url}",
         )
 
     # 2. Completed all target steps
     if summary_status == "completed" or (total and step >= total and w_state == "finished"):
         return (
             "completed",
-            f"✅ [NQS 计算完成] 实验 `{name}` 已完成全部 {step}/{total} 步！({metrics_str}) {url}",
+            f"[DONE] Run '{name}' completed all {step}/{total} steps ({metrics_str}). {url}",
         )
 
     # 3. Crashed or failed unexpectedly before completion
     if w_state in {"crashed", "failed", "killed"} and (not total or step < total):
         return (
             f"stopped_{step}",
-            f"⚠️ [Colab 中断] 实验 `{name}` 在第 {step}/{total} 步停止 (状态: {w_state}, {metrics_str})。"
-            f"云端 Checkpoint 已保存，重新打开 Colab 点 Run All 即可续算！ {url}",
+            f"[INTERRUPTED] Run '{name}' stopped at step {step}/{total} "
+            f"(state={w_state}, {metrics_str}). Cloud checkpoint is saved; reopen Colab and Run All to resume. {url}",
         )
 
     # 4. Still marked "running" on W&B, check if heartbeat is stale (silent Colab disconnect)
@@ -119,14 +113,15 @@ def classify_run_health(
             mins = int(age_sec // 60)
             return (
                 f"stale_{step}",
-                f"⚠️ [Colab 疑似断连] 实验 `{name}` 已 {mins} 分钟无心跳（停在 {step}/{total} 步，{metrics_str}）。"
-                f"打开 Colab 点 Run All 即可从最近 Checkpoint 接着跑！ {url}",
+                f"[DISCONNECTED] Run '{name}' has no heartbeat for {mins}m "
+                f"(paused at step {step}/{total}, {metrics_str}). "
+                f"Reopen Colab and click Run All to resume from the latest checkpoint. {url}",
             )
 
     # 5. Healthy active run
     return (
         "healthy_running",
-        f"🟢 [运行正常] `{name}` 进度 {step}/{total} ({metrics_str})",
+        f"[RUNNING] '{name}' progress {step}/{total} ({metrics_str})",
     )
 
 
@@ -224,14 +219,16 @@ def poll_once(cfg: WatchdogConfig, print_markdown: bool = False) -> str:
         event_key, msg = classify_run_health(r, now_unix=now_ts, stale_timeout_sec=cfg.stale_timeout_sec)
         old_key = prev_state.get(run_id)
 
-        # Notify on actionable state transitions (avoid spamming on healthy_running unless resuming from stale!)
         if event_key != old_key:
             if event_key != "healthy_running":
                 prio = "high" if ("diverged" in event_key or "stale" in event_key or "stopped" in event_key) else "default"
                 print(f"[Alert] {msg}")
                 send_notification(cfg, title=f"NQS Monitor: {r['name']}", message=msg, priority=prio)
             elif old_key and (old_key.startswith("stale_") or old_key.startswith("stopped_")):
-                resume_msg = f"▶️ [NQS 已恢复续算] 实验 `{r['name']}` 已重新连接并继续推进（当前第 {r['last_step']}/{r['total_steps']} 步）！"
+                resume_msg = (
+                    f"[RESUMED] Run '{r['name']}' reconnected and resumed "
+                    f"(step {r['last_step']}/{r['total_steps']})."
+                )
                 print(f"[Alert] {resume_msg}")
                 send_notification(cfg, title=f"NQS Resumed: {r['name']}", message=resume_msg, priority="default")
             new_state[run_id] = event_key
@@ -252,7 +249,7 @@ def poll_once(cfg: WatchdogConfig, print_markdown: bool = False) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="GCP e2-micro 24/7 Watchdog for Google Colab NQS runs.")
+    parser = argparse.ArgumentParser(description="GCP VM 24/7 Watchdog for Google Colab NQS runs.")
     parser.add_argument("--config", type=str, default="monitor/monitor_config.yaml", help="Watchdog YAML config.")
     parser.add_argument("--once", action="store_true", help="Check once and exit (useful for CLI / Agent inspection).")
     parser.add_argument("--markdown", action="store_true", help="Print Markdown summary table of recent runs.")

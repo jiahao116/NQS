@@ -94,12 +94,14 @@ def run_experiment(
     vstate, optimizer, preconditioner = build_variational_state(cfg, qsys.hilbert)
     print(f"[Model] Total variational parameters: {vstate.n_parameters:,}")
 
-    driver = nk.driver.VMC(
-        hamiltonian=qsys.hamiltonian,
-        optimizer=optimizer,
-        preconditioner=preconditioner,
-        variational_state=vstate,
-    )
+    driver_kwargs: dict[str, Any] = {
+        "hamiltonian": qsys.hamiltonian,
+        "optimizer": optimizer,
+        "variational_state": vstate,
+    }
+    if preconditioner is not None:
+        driver_kwargs["preconditioner"] = preconditioner
+    driver = nk.driver.VMC(**driver_kwargs)
 
     # 3. Check for existing checkpoint (auto-resume after Colab disconnect)
     start_step = 0
@@ -295,7 +297,7 @@ def main() -> None:
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/tfim_1d_gpt.yaml",
+        default="configs/tfim_1d_rbm.yaml",
         help="Path to experiment YAML/JSON configuration file.",
     )
     parser.add_argument(

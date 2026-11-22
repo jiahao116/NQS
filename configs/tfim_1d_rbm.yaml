@@ -1,19 +1,22 @@
 # ==============================================================================
-# 对照实验 #2：一维临界横场伊辛模型 + 经典 RBM + 随机重构 (Stochastic Reconfiguration)
-# 复现 Carleo & Troyer (Science 2017) 开山之作，极速达到 < 1e-5 相对误差
+# Classic Starter Benchmark #1: 1D Critical Transverse-Field Ising Model (L=12)
+# Ansatz: Restricted Boltzmann Machine (RBM) + Stochastic Reconfiguration (SR)
+# Reference: Carleo & Troyer, Science 355, 602 (2017)
+# Expected Colab T4 GPU runtime: ~20-40 seconds (including initial JAX JIT compile)
+# Target accuracy: relative error < 1e-4 against Lanczos exact ground-state energy
 # ==============================================================================
 
 system:
   hamiltonian: tfim_1d
   n_spins: 12
-  h_field: 1.0
+  h_field: 1.0          # Quantum critical point (h/J = 1.0)
   j_coupling: 1.0
   periodic: true
-  compute_exact: true
+  compute_exact: true   # Solve exact ground-state energy E0 via Lanczos ED for verification
 
 model:
   ansatz: rbm
-  rbm_alpha: 2          # 隐藏层神经元密度 alpha = 2 (共 24 个复数隐藏神经元)
+  rbm_alpha: 2          # Hidden unit density alpha = 2 (24 complex hidden units)
 
 training:
   seed: 42
@@ -22,7 +25,7 @@ training:
   n_steps: 300
   optimizer: sgd
   learning_rate: 0.02
-  use_sr: true          # 开启量子自然梯度 (Stochastic Reconfiguration)
+  use_sr: true          # Quantum natural gradient (Stochastic Reconfiguration)
   diag_shift: 0.01
   target_rel_error: 0.00005
 
@@ -30,7 +33,7 @@ telemetry:
   experiment_name: tfim1d_L12_rbm_sr
   wandb_project: nqs-colab
   use_wandb: true
-  log_every: 10
-  checkpoint_every: 50
+  log_every: 10         # Push live energy curve & heartbeat every 10 steps
+  checkpoint_every: 50  # Save resumable checkpoint every 50 steps
   checkpoint_dir: checkpoints
   upload_wandb_checkpoint: true

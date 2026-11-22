@@ -1,17 +1,17 @@
 # ==============================================================================
-# GCP e2-micro 免费虚拟机哨兵配置文件模板
-# 使用方法：复制为 monitor/monitor_config.yaml 并填入你的专属 ntfy 频道名
+# GCP VM Watchdog Configuration Template
+# Usage: copy to monitor/monitor_config.yaml and set your private ntfy topic
 # ==============================================================================
 
 wandb_project: nqs-colab
-wandb_entity: null             # 留空则自动使用 WANDB_API_KEY 对应的默认账号
-poll_interval_sec: 120         # 每 2 分钟轮询一次云端状态（极省流量与内存）
-stale_timeout_sec: 360         # 超过 6 分钟无心跳即判定 Colab 掉线并推送手机提醒
+wandb_entity: null             # Leave null to use the default entity for WANDB_API_KEY
+poll_interval_sec: 120         # Poll W&B API every 2 minutes
+stale_timeout_sec: 360         # Alert if no heartbeat arrives for 6 minutes
 max_runs_to_check: 10
 
-# 手机推送通知（强烈推荐 ntfy.sh：免费、开源、无需注册账号！）
-# 只需在手机安装 ntfy App，订阅下面你自己起的随机暗号频道名（不要太简单以免撞名）：
+# Mobile push alerts via ntfy.sh (free, open-source, no signup required)
+# Install the ntfy app on your phone and subscribe to a unique topic name:
 ntfy_topic: "nqs-colab-change-me-83921"
 
-# 可选：Discord / 飞书 / Slack Webhook 地址
+# Optional: Discord / Slack / custom webhook URL
 webhook_url: null

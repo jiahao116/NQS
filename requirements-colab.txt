@@ -1,4 +1,4 @@
-# Colab 计算端依赖（Colab 自带 CUDA 版 JAX；脚本会自动根据是否有 GPU 选择 netket[cuda] 或 netket）
+# Colab compute dependencies (Colab ships with CUDA-enabled JAX; notebook installs netket[cuda] on GPU)
 netket>=3.12
 flax>=0.8
 optax>=0.2

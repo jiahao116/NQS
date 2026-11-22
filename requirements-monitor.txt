@@ -1,4 +1,4 @@
-# GCP e2-micro 免费虚拟机监控端极简依赖（内存占用 < 40 MB，无需浏览器或 GPU）
+# Minimal dependencies for the GCP VM watchdog (< 40 MB RAM, no browser or GPU required)
 wandb>=0.17
 requests>=2.31
 pyyaml>=6.0

@@ -1,6 +1,6 @@
 # ==============================================================================
-# 进阶实验 #3：一维反铁磁海森堡链 (1D Antiferromagnetic Heisenberg, L=12)
-# 基态波函数正负号交替（Marshall 符号结构），开启 GPT 复相位分支 (use_phase: true)
+# Advanced Benchmark #3: 1D Antiferromagnetic Heisenberg Chain (L=12)
+# Ansatz: Complex-Phase Causal Transformer (learns nontrivial sign/phase structure)
 # ==============================================================================
 
 system:
@@ -16,7 +16,7 @@ model:
   n_heads: 4
   n_layers: 2
   mlp_ratio: 2
-  use_phase: true       # 开启 [-pi, pi] 相位输出头以学习量子态正负号/复相位结构
+  use_phase: true       # Enable [-pi, pi] phase head for Marshall sign / complex phases
 
 training:
   seed: 42
@@ -28,7 +28,7 @@ training:
   target_rel_error: 0.001
 
 telemetry:
-  experiment_name: heisenberg1d_L12_gpt
+  experiment_name: heisenberg1d_L12_transformer
   wandb_project: nqs-colab
   use_wandb: true
   log_every: 10
