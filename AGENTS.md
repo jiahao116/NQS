@@ -1,4 +1,4 @@
-# AGENTS.md — NQS Project Handover & Operational Rules (v0.2.0)
+# AGENTS.md — NQS Project Handover & Operational Rules (v0.3.0)
 
 > **For any new AI agent taking over this workspace:** Read this file first. It is the
 > authoritative, live specification of the repository's security invariants, coding rules,
@@ -71,11 +71,12 @@ Local Windows PC (Antigravity + passwordless `ssh nqs-vm`)
 
 ### Verified Environment & Hard-Won Compatibility Pins (Colab 2026 / Python 3.13)
 Verified end-to-end on Colab `T4 GPU` (both web notebook and headless `google-colab-cli`):
-- **Verified package versions**: `JAX 0.11.1` (Colab native CUDA 13), `Flax 0.12.12`, `NetKet 3.23.0`, `optax 0.2.9`, `beartype 0.22.9`, `plum-dispatch 2.7.1`, `wandb 0.31.2`.
-- **Critical Gotcha #1 (CUDA 13 vs CUDA 12)**: Colab 2026 ships with native CUDA 13 (`jax-cuda13-plugin`). **NEVER install `netket[cuda]`** (which pulls `jax-cuda12-plugin` and causes `ALREADY_EXISTS: PJRT_Api already exists for device type cuda`). Always install plain `netket`.
-- **Critical Gotcha #2 (`beartype 0.23` dispatch break)**: `beartype>=0.23` changed `is_subhint(Any, T)`, breaking `plum-dispatch` inside `netket/utils/numbers.py` (`TypeError: cannot deduce dtype of object type <class 'int'>`). Always pin **`beartype<0.23`** and **`plum-dispatch<2.8`**.
+- **Quantax v0.4.0 backend (preferred for 2D frustrated magnets / Hubbard)**: `JAX 0.11.1` (Colab native CUDA 13), `quantax[full]==0.4.0` (`equinox`, `quspin 1.0.1`, `lrux 0.2.0`, `fermix 0.1.0`, `lineax`), `odrpack 0.7.1`, `wandb`. Install **without `--upgrade`** so Colab's native `jax-cuda13-plugin` stays untouched. Auto-dispatched whenever a YAML config declares `backend: quantax`.
+- **NetKet 3.23 backend (1D / autoregressive GPT baselines)**: `JAX 0.11.1` (Colab native CUDA 13), `Flax 0.12.12`, `NetKet 3.23.0`, `optax 0.2.9`, `beartype 0.22.9`, `plum-dispatch 2.7.1`, `wandb 0.31.2`.
+- **Critical Gotcha #1 (CUDA 13 vs CUDA 12)**: Colab 2026 ships with native CUDA 13 (`jax-cuda13-plugin`). **NEVER install `netket[cuda]`** (which pulls `jax-cuda12-plugin` and causes `ALREADY_EXISTS: PJRT_Api already exists for device type cuda`). Always install plain `netket` or `quantax[full]`.
+- **Critical Gotcha #2 (`beartype 0.23` dispatch break)**: `beartype>=0.23` changed `is_subhint(Any, T)`, breaking `plum-dispatch` inside `netket/utils/numbers.py` (`TypeError: cannot deduce dtype of object type <class 'int'>`). Always pin **`beartype<0.23`** and **`plum-dispatch<2.8`** for NetKet runs.
 - **Critical Gotcha #3 (NetKet 3.23 VMC API)**: `driver.iter(chunk)` was removed in NetKet 3.23. Always use **`driver.run(n_iter=chunk, out=(), show_progress=False)`** (already implemented in `src/nqs/train.py`).
-- **Critical Gotcha #4 (Clean subprocess + live streaming)**: `scripts/colab_remote_runner.py` runs `python -u -m nqs.train` inside a clean `subprocess.Popen` child process piping `stdout` line-by-line to Python `sys.stdout`. This simultaneously avoids stale in-memory `beartype` imports (no kernel restart needed) and streams live `[Step ...]` logs through Jupyter/Colab CLI.
+- **Critical Gotcha #4 (Clean subprocess + live streaming)**: `scripts/colab_remote_runner.py` runs `python -u -m nqs.quantax_train` or `python -u -m nqs.train` inside a clean `subprocess.Popen` child process piping `stdout` line-by-line to Python `sys.stdout`. This simultaneously satisfies Quantax's one-`Sites`-per-process singleton invariant, avoids stale in-memory `beartype` imports, and streams live step logs through Jupyter/Colab CLI.
 - **Critical Gotcha #5 (`--timeout 0`)**: `colab exec` and `colab run` default to `--timeout 30.0` seconds of stdout silence, which kills JAX JIT compilation. Always pass **`--timeout 0`**.
 - **Critical Gotcha #6 (Windows PowerShell -> SSH quoting)**: Wrap remote SSH commands in single quotes `'...'` to prevent PowerShell from expanding `$` variables locally.
 
@@ -146,8 +147,11 @@ ssh nqs-vm 'systemctl is-active nqs-watchdog.service'
 | `src/nqs/models.py` | Variational ansatzes: `RBM` (+ SR), `ARNNDense`, and `CausalTransformerWaveFunction` (`gpt`, exact direct sampling). |
 | `src/nqs/checkpoint.py` | Atomic `.mpack` + JSON checkpointing with Drive-free W&B Artifact upload & auto-restore. |
 | `src/nqs/train.py` | Main VMC driver loop (`driver.run`), Exact ED relative error, V-score, heartbeats, NaN guard, convergence plotting. |
-| `configs/*.yaml` | Reproducible experiment configs (`tfim_1d_rbm.yaml`, `tfim_1d_gpt.yaml`, `heisenberg_1d_gpt.yaml`). |
-| `scripts/colab_remote_runner.py` | Remote Colab VM runner invoked by `colab exec` / `colab run` (idempotent env + streaming subprocess). |
+| `src/nqs/quantax_train.py` | Quantax v0.4.0 two-stage `ResConv` + `SR/MinSR` + $C_{4v}\times\mathbb{Z}_2$ symmetry projection runner with W&B telemetry & Artifact upload. |
+| `src/nqs/quantax_analysis.py` | Reusable Quantax scientific diagnostics: streaming `BinningAccumulator` (`measure`), symmetry overlap $O_T$ (`symm-test`), ODR `odrpack` extrapolation (`zero-var-extrap`), and 3-panel plot renderer. |
+| `configs/*.yaml` | Reproducible experiment configs (`qtx_square4x4_heisenberg.yaml`, `qtx_square4x4_j1j2.yaml`, `tfim_1d_rbm.yaml`, `tfim_1d_gpt.yaml`, `heisenberg_1d_gpt.yaml`). |
+| `docs/images/*.png` | High-resolution verified 3-panel benchmark plots embedded directly in `README.md`. |
+| `scripts/colab_remote_runner.py` | Multi-backend remote Colab VM runner invoked by `colab exec` / `colab run` (auto-detects `quantax` vs `netket`, idempotent env, streaming subprocess). |
 | `scripts/colab_quick.sh` | Workflow 1 wrapper on `nqs-vm` for short interactive hot-GPU sessions. |
 | `scripts/colab_queue.sh` | Workflow 2 wrapper on `nqs-vm` for detached `tmux` unattended batch queues (`colab run`). |
 | `scripts/bootstrap_vm.sh` | One-shot Ubuntu GCP `e2-micro` setup (2 GB swap, `tmux`, `uv`, `google-colab-cli`, `.venv-monitor`). |
@@ -163,6 +167,15 @@ ssh nqs-vm 'systemctl is-active nqs-watchdog.service'
 
 ## 5. Verified Baseline Benchmarks (Colab T4 GPU)
 
+### 2D Square-Lattice Spin Models (Quantax v0.4.0, `ResConv` 2×8 + `SR/MinSR` + $C_{4v}\times\mathbb{Z}_2$, 2,344 params)
+- **`configs/qtx_square4x4_heisenberg.yaml`** ($4\times 4, J_2/J_1 = 0$, QuSpin ED $E_0 = -44.91392517$, $\langle M_{\mathrm{stag}}^2\rangle_{\mathrm{ED}} = 0.368703$, 250+250 steps):
+  - Exact dense NQS: $E = -44.913952$, **Relative Error `5.95e-07`**, **Fidelity `1.000000`**, $\langle M_{\mathrm{stag}}^2\rangle = 0.368656$.
+  - Binning MC (32,768 samples): $E = -44.913761 \pm 7.32\times 10^{-5}$ ($\tau_{\mathrm{int}}=0.00$), $\langle M_{\mathrm{stag}}^2\rangle = 0.3634 \pm 0.0025$ ($\tau_{\mathrm{int}}=0.42$), ODR $E_0 = -44.913996 \pm 0.000085 \pm 0.000074$, ~136s.
+- **`configs/qtx_square4x4_j1j2.yaml`** ($4\times 4, J_2/J_1 = 0.5$, QuSpin ED $E_0 = -33.83166885$, $\langle M_{\mathrm{stag}}^2\rangle_{\mathrm{ED}} = 0.213537$, `sinhp1_by_log`, 300+300 steps):
+  - Exact dense NQS: $E = -33.767036$, **Relative Error `1.91e-03`**, **Fidelity `0.996071`**, $\langle M_{\mathrm{stag}}^2\rangle = 0.216912$.
+  - Binning MC (32,768 samples): $E = -33.766033 \pm 4.87\times 10^{-3}$ ($\tau_{\mathrm{int}}=0.00$), $\langle M_{\mathrm{stag}}^2\rangle = 0.2185 \pm 0.0021$ ($\tau_{\mathrm{int}}=0.57$), ODR $E_0 = -33.7800 \pm 0.0111 \pm 0.0070$, ~175s.
+
+### 1D Critical TFIM Baselines (NetKet 3.23)
 1D Critical Transverse-Field Ising Model ($N = 12, h = 1.0, \text{PBC}$), Exact Lanczos ED $E_0 = -15.32259515$ ($\Delta E = 0.13108693$):
 - **`configs/tfim_1d_rbm.yaml`** (`RBM` + `SR`, 324 params, 300 steps): `E = -15.322866 ± 0.002724`, **Relative Error `1.77e-05`**, V-score `3.51e-04`, ~36s (~`0.03` Compute Units via headless `colab-cli`).
 - **`configs/tfim_1d_gpt.yaml`** (`CausalTransformerWaveFunction`, 17,698 params, 400 steps): `E = -15.272748 ± 0.015628`, **Relative Error `3.25e-03`**, V-score `1.08e-02`, ~112s.

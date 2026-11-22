@@ -1,4 +1,4 @@
-# NQS 云端双流程操作手册（v0.2.0 正式运行版）
+# NQS 云端双流程操作手册（v0.3.0 正式运行版）
 
 > 本文档始终与当前仓库架构同步；任何过时步骤已清除。面向新接手 AI Agent 的完整技术交接规范请见根目录 **[AGENTS.md](../AGENTS.md)**。
 
@@ -46,13 +46,15 @@ flowchart LR
 
 > 日常只需在本地直接用中文告诉 Antigravity 你想跑什么实验，以下为底层执行的标准命令参考。
 
-### 流程 ①：短时间验证 / 快速试错（复用热 GPU，几十秒出结果）
+### 流程 ①：短时间验证 / 快速试错（复用热 GPU，几十秒~两分钟出结果）
+> `scripts/colab_remote_runner.py` 会根据 YAML 配置中的 `backend: quantax` 自动切换并安装 Quantax v0.4（无须改动命令），原有 NetKet 配置继续 100% 兼容。
 ```powershell
 # 1. 启动一个热 Colab GPU 会话（可选 T4 / L4 / A100）
 ssh nqs-vm 'bash NQS/scripts/colab_quick.sh start T4'
 
 # 2. 快速执行验证（自动拉最新 GitHub 代码，首次后跳过 pip install，日志实时回显）
-ssh nqs-vm 'bash NQS/scripts/colab_quick.sh run configs/tfim_1d_rbm.yaml --fresh'
+ssh nqs-vm 'bash NQS/scripts/colab_quick.sh run configs/qtx_square4x4_heisenberg.yaml --fresh'
+ssh nqs-vm 'bash NQS/scripts/colab_quick.sh run configs/qtx_square4x4_j1j2.yaml --fresh'
 
 # 3. 测完务必关闭热会话释放 GPU，停止消耗 Units！
 ssh nqs-vm 'bash NQS/scripts/colab_quick.sh stop'
