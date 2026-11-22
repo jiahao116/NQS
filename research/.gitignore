@@ -1,0 +1,10 @@
+﻿runs/
+*.mpack
+*.eqx
+*.npz
+*.h5
+__pycache__/
+*.py[cod]
+.env
+.env.*
+

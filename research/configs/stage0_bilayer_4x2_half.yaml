@@ -1,0 +1,41 @@
+# Stage 0 NQS (ED-verifiable, reference model): half-filled mixD BILAYER on 4x2x2 (16 sites)
+# Same in-plane cluster as the trilayer run, for the controlled n_layers = 2 vs 3 comparison.
+
+backend: quantax
+
+system:
+  lattice: multilayer_square
+  lx: 4
+  ly: 2
+  n_layers: 2
+  pbc: [true, true]
+  hamiltonian: mixd_heisenberg
+  spin_convention: S
+  j_par: 1.0
+  j_perp: 1.0
+  msr: true
+  reference: ed/stage0/4x2x2_pp_jpar1_jperp1.json
+
+model:
+  ansatz: resconv
+  nblocks: 2
+  channels: 8
+  kernel_size: 3
+  final_activation: exp
+  layer_axis: grid
+  disable_tf32: false
+
+training:
+  seed: 42
+  nsamples: 1024
+  stage1_steps: 300
+  stage2_steps: 300
+  learning_rate: 0.005
+  stage2_learning_rate: 0.005
+  optimizer: sr
+  reweight: 2.0
+  sampler_neighbors: [1]
+
+telemetry:
+  experiment_name: stage0_bilayer_4x2_half
+  use_wandb: false

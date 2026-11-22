@@ -1,0 +1,19 @@
+# Stage 0 ED scan: half-filled mixD multilayer Heisenberg (spin-1/2, S.S convention)
+#   H = J_par * sum_inplane S_i.S_j + J_perp * sum_interlayer S_i.S_j
+# Consumed by research/scripts/run_ed_stage0.py (numba ED; QuSpin cross-check optional).
+
+clusters:
+  - {lx: 4, ly: 4, n_layers: 1}   # sanity: 4x4 square-lattice reference
+  - {lx: 4, ly: 2, n_layers: 1}   # single-layer building block for decoupled limit
+  - {lx: 4, ly: 2, n_layers: 2}   # bilayer, 16 sites
+  - {lx: 4, ly: 2, n_layers: 3}   # trilayer, 24 sites (Sz=0 dim 2,704,156)
+
+j_par: 1.0
+j_perp_values: [0.0, 0.5, 1.0, 2.0, 4.0]
+
+# Extra point per multilayer cluster: J_par = 0 (isolated vertical columns, analytic)
+decoupled_columns_check: true
+
+spin_gap: true          # also solve the Sz=1 sector
+correlations: true      # full <S_i.S_j> matrix (bond energies, staggered structure factor)
+output_dir: ed/stage0

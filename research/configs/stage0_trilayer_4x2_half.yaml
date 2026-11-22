@@ -1,0 +1,43 @@
+# Stage 0 NQS (ED-verifiable): half-filled mixD TRILAYER Heisenberg on 4x2x3 (24 sites)
+# Purpose: validate the multilayer quantax operator + NQS pipeline against exact ED
+# (research/ed/stage0) before going to 4x4x3. Not runnable yet: requires the research
+# NQS runner (to be written in research/src).
+
+backend: quantax
+
+system:
+  lattice: multilayer_square
+  lx: 4
+  ly: 2
+  n_layers: 3
+  pbc: [true, true]          # in-plane; interlayer direction is always open
+  hamiltonian: mixd_heisenberg
+  spin_convention: S          # spin-1/2 S.S (quantax Heisenberg uses sigma.sigma = 4 S.S)
+  j_par: 1.0
+  j_perp: 1.0
+  msr: true                   # all bonds bipartite -> Marshall sign on every bond
+  reference: ed/stage0/4x2x3_pp_jpar1_jperp1.json
+
+model:
+  ansatz: resconv
+  nblocks: 2
+  channels: 8
+  kernel_size: 3
+  final_activation: exp
+  layer_axis: grid            # OPEN DECISION: treat layers as a 3rd grid axis vs as channels
+  disable_tf32: false
+
+training:
+  seed: 42
+  nsamples: 1024
+  stage1_steps: 300
+  stage2_steps: 300
+  learning_rate: 0.005
+  stage2_learning_rate: 0.005
+  optimizer: sr
+  reweight: 2.0
+  sampler_neighbors: [1]
+
+telemetry:
+  experiment_name: stage0_trilayer_4x2_half
+  use_wandb: false            # research runs: no public logging until policy is decided

@@ -1,0 +1,31 @@
+{
+  "cluster": "4x2x2_pp",
+  "lx": 4,
+  "ly": 2,
+  "n_layers": 2,
+  "n_sites": 16,
+  "n_bonds": 32,
+  "j_par": 1.0,
+  "j_perp": 4.0,
+  "convention": "spin-1/2 S.S; quantax Heisenberg (sigma.sigma) energy = 4x",
+  "dim_sz0": 12870,
+  "E0": -25.294228288017674,
+  "E0_per_site": -1.5808892680011046,
+  "E0_tJ_convention": -39.29422828801768,
+  "bond_corr_mean": {
+    "par_L0": -0.11580264418326085,
+    "par_L1": -0.11580264418326076,
+    "perp_L01": -0.7035926508630955
+  },
+  "energy_from_correlations": -25.294228288017315,
+  "S_tot_squared": 2.2794960363725636e-13,
+  "S_pi": 2.40691136501413,
+  "m_stag_squared": 0.15043196031338313,
+  "m_stag_squared_per_layer": {
+    "L0": 0.15599777524021735,
+    "L1": 0.15599777524021732
+  },
+  "E0_sz1": -22.679214143932104,
+  "spin_gap": 2.6150141440855705,
+  "wall_time_s": 0.07
+}
