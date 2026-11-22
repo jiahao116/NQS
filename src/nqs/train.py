@@ -162,9 +162,8 @@ def run_experiment(
             chunk = min(log_every, total_steps - current_step)
             t_chunk = time.time()
 
-            # Advance VMC optimization by `chunk` steps
-            for _ in driver.iter(chunk):
-                pass
+            # Advance VMC optimization by `chunk` steps (compatible with NetKet 3.23+)
+            driver.run(n_iter=chunk, out=(), show_progress=False)
             current_step += chunk
             dt = time.time() - t_chunk
 

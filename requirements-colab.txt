@@ -1,7 +1,10 @@
-# Colab compute dependencies (Colab ships with CUDA-enabled JAX; notebook installs netket[cuda] on GPU)
-netket>=3.12
+# Colab compute dependencies (uses Colab's preinstalled CUDA JAX; avoids duplicate jax-cuda12 plugin)
+netket>=3.22
 flax>=0.12
 optax>=0.2
+# Pin beartype<0.23 and plum-dispatch<2.8 for NetKet 3.23 dispatch compatibility on Python 3.13
+beartype<0.23
+plum-dispatch<2.8
 wandb>=0.17
 pyyaml>=6.0
 matplotlib>=3.8
