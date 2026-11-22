@@ -21,7 +21,11 @@ CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 class WorkflowSmokeTests(unittest.TestCase):
     def test_all_python_sources_compile(self) -> None:
-        py_files = list((ROOT / "src").rglob("*.py")) + list((ROOT / "monitor").rglob("*.py"))
+        py_files = (
+            list((ROOT / "src").rglob("*.py"))
+            + list((ROOT / "monitor").rglob("*.py"))
+            + list((ROOT / "scripts").rglob("*.py"))
+        )
         self.assertGreaterEqual(len(py_files), 6)
         for path in py_files:
             source = path.read_text(encoding="utf-8")

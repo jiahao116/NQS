@@ -11,6 +11,7 @@ venv/
 # Experiment outputs & local checkpoints
 outputs/
 checkpoints/
+logs/
 wandb/
 *.mpack
 *.log
