@@ -34,6 +34,8 @@ training:
   reweight: 2.0
   sampler_neighbors:
   - 1
+  max_parallel_stage1: 20000
+  max_parallel_stage2: 4096
 telemetry:
   experiment_name: stage0b_trilayer_4x2_long
   use_wandb: false

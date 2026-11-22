@@ -11,11 +11,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 RUNS = {
     # name: (n_layers, channels, nblocks, steps_per_stage, nsamples)
+    # nsamples kept at 1024 (as in Stage 0) so only width / length change.
     "stage0b_trilayer_4x2_long": (3, 8, 2, 1500, 1024),
-    "stage0b_trilayer_4x2_wide": (3, 16, 4, 600, 2048),
-    "stage0b_trilayer_4x2_wide_long": (3, 16, 4, 1000, 2048),
-    "stage0b_bilayer_4x2_wide_long": (2, 16, 4, 1000, 2048),
+    "stage0b_trilayer_4x2_wide": (3, 16, 4, 600, 1024),
+    "stage0b_trilayer_4x2_wide_long": (3, 16, 4, 1500, 1024),
+    "stage0b_bilayer_4x2_wide_long": (2, 16, 4, 1500, 1024),
 }
+
+# Forward-pass batch limits. The default 20000 thrashes T4 memory for 16x4 ResConv
+# (observed 2.9 s/step with XLA rematerialization warnings).
+MAX_PARALLEL = {8: (20000, 4096), 16: (4096, 2048)}
 
 
 def make(name, n_layers, channels, nblocks, steps, nsamples):
@@ -38,6 +43,8 @@ def make(name, n_layers, channels, nblocks, steps, nsamples):
             "stage1_steps": steps, "stage2_steps": steps,
             "learning_rate": 0.005, "stage2_learning_rate": 0.005,
             "optimizer": "sr", "reweight": 2.0, "sampler_neighbors": [1],
+            "max_parallel_stage1": MAX_PARALLEL[channels][0],
+            "max_parallel_stage2": MAX_PARALLEL[channels][1],
         },
         "telemetry": {"experiment_name": name, "use_wandb": False, "log_every": 100},
     }

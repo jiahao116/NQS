@@ -114,10 +114,18 @@ case "${cmd}" in
   stop)
     if tmux has-session -t "${TMUX_SESSION}" 2>/dev/null; then
       tmux kill-session -t "${TMUX_SESSION}"
-      echo "[Queue] Killed tmux session '${TMUX_SESSION}'. Check active Colab sessions with: colab --auth=${AUTH_MODE} sessions"
+      echo "[Queue] Killed tmux session '${TMUX_SESSION}'."
     else
       echo "[Queue] No active tmux session '${TMUX_SESSION}'."
     fi
+    # Killing the local `colab run` client does NOT release its remote GPU:
+    # explicitly stop every ephemeral `run-*` session left behind by the queue.
+    sleep 3
+    for s in $(colab --auth="${AUTH_MODE}" sessions 2>/dev/null | grep -o '^\[run-[^]]*\]' | tr -d '[]'); do
+      echo "[Queue] Releasing orphaned Colab session '${s}'..."
+      colab --auth="${AUTH_MODE}" stop -s "${s}" || true
+    done
+    colab --auth="${AUTH_MODE}" sessions || true
     ;;
 
   *)

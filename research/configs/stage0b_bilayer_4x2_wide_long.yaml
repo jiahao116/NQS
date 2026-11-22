@@ -25,15 +25,17 @@ model:
   - spin_inverse
 training:
   seed: 42
-  nsamples: 2048
-  stage1_steps: 1000
-  stage2_steps: 1000
+  nsamples: 1024
+  stage1_steps: 1500
+  stage2_steps: 1500
   learning_rate: 0.005
   stage2_learning_rate: 0.005
   optimizer: sr
   reweight: 2.0
   sampler_neighbors:
   - 1
+  max_parallel_stage1: 4096
+  max_parallel_stage2: 2048
 telemetry:
   experiment_name: stage0b_bilayer_4x2_wide_long
   use_wandb: false
