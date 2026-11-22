@@ -45,3 +45,6 @@ logs/
 wandb/
 *.mpack
 *.log
+
+# Local third-party reference repositories (never commit/push)
+aochen/

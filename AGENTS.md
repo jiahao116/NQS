@@ -139,6 +139,8 @@ ssh nqs-vm 'systemctl is-active nqs-watchdog.service'
 | `AGENTS.md` | **This file** — Master handover specification & mandatory agent rules (keep always current). |
 | `README.md` | Public GitHub repository overview (English, zero private identifiers). |
 | `docs/WORKFLOW_GUIDE.md` | Human-facing operational handbook (Chinese, always synced with v0.2 workflow). |
+| `.agents/skills/` | Workspace AI skills auto-discovered by Antigravity: `quantax-core` (Quantax v0.4 workflow & sharp bits) + MIT-licensed `measure`, `zero-var-extrap`, `symm-test`, and `time-bench` absorbed from `ChenAo-Phys/quantax`. |
+| `aochen/` *(gitignored)* | Local-only reference clones of `ChenAo-Phys` GitHub repositories (`quantax`, `NeuralHubbard`, `MinSR`, etc.); never committed or pushed. |
 | `src/nqs/config.py` | Experiment dataclasses (`SystemConfig`, `ModelConfig`, `TrainingConfig`, `TelemetryConfig`) & validation. |
 | `src/nqs/physics.py` | Quantum spin Hamiltonians (`tfim_1d`, `heisenberg_1d`, `heisenberg_2d`) & Lanczos Exact Diagonalization. |
 | `src/nqs/models.py` | Variational ansatzes: `RBM` (+ SR), `ARNNDense`, and `CausalTransformerWaveFunction` (`gpt`, exact direct sampling). |

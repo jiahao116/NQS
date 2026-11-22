@@ -20,6 +20,12 @@ colab = [
     "wandb>=0.17",
     "matplotlib>=3.8",
 ]
+quantax = [
+    "quantax[full]>=0.4.0",
+    "odrpack>=0.7.0",
+    "wandb>=0.17",
+    "matplotlib>=3.8",
+]
 monitor = [
     "wandb>=0.17",
     "requests>=2.31",

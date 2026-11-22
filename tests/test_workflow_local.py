@@ -15,7 +15,9 @@ sys.path.insert(0, str(ROOT))
 
 from monitor.gcp_watchdog import classify_run_health
 from nqs.config import ExperimentConfig, ModelConfig, SystemConfig
+from nqs.quantax_train import QuantaxExperimentConfig, QuantaxModelConfig, QuantaxSystemConfig
 from scripts.check_secrets import scan_tracked
+from scripts.colab_remote_runner import detect_backend
 
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
@@ -34,6 +36,7 @@ class WorkflowSmokeTests(unittest.TestCase):
             list((ROOT / "src").rglob("*.py"))
             + list((ROOT / "monitor").rglob("*.py"))
             + list((ROOT / "scripts").rglob("*.py"))
+            + list((ROOT / ".agents" / "skills").rglob("*.py"))
         )
         self.assertGreaterEqual(len(py_files), 6)
         for path in py_files:
@@ -45,6 +48,7 @@ class WorkflowSmokeTests(unittest.TestCase):
             list((ROOT / "src").rglob("*.py"))
             + list((ROOT / "monitor").rglob("*"))
             + list((ROOT / "scripts").rglob("*"))
+            + list((ROOT / ".agents" / "skills").rglob("*"))
             + list((ROOT / "configs").rglob("*.yaml"))
             + list((ROOT / "tests").rglob("*.py"))
             + [
@@ -85,6 +89,18 @@ class WorkflowSmokeTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             too_big_ed.validate()
 
+        qtx_cfg = QuantaxExperimentConfig()
+        qtx_cfg.validate()
+        with self.assertRaises(ValueError):
+            QuantaxExperimentConfig(system=QuantaxSystemConfig(lx=5)).validate()
+        with self.assertRaises(ValueError):
+            QuantaxExperimentConfig(model=QuantaxModelConfig(final_activation="invalid")).validate()
+
+    def test_remote_runner_backend_detection(self) -> None:
+        self.assertEqual(detect_backend(ROOT / "configs" / "tfim_1d_rbm.yaml"), "netket")
+        self.assertEqual(detect_backend(ROOT / "configs" / "qtx_square4x4_heisenberg.yaml"), "quantax")
+        self.assertEqual(detect_backend(ROOT / "configs" / "qtx_square4x4_j1j2.yaml"), "quantax")
+
     def test_yaml_configs_if_pyyaml_available(self) -> None:
         try:
             import yaml  # noqa: F401
@@ -92,10 +108,15 @@ class WorkflowSmokeTests(unittest.TestCase):
             self.skipTest("PyYAML not installed in bare host Python")
 
         from nqs.config import load_config
+        from nqs.quantax_train import load_quantax_config
 
         for cfg_file in (ROOT / "configs").glob("*.yaml"):
-            cfg = load_config(cfg_file)
-            self.assertGreaterEqual(cfg.system.n_spins, 2)
+            if detect_backend(cfg_file) == "quantax":
+                qcfg = load_quantax_config(cfg_file)
+                self.assertGreaterEqual(qcfg.system.n_spins, 4)
+            else:
+                cfg = load_config(cfg_file)
+                self.assertGreaterEqual(cfg.system.n_spins, 2)
 
     def test_watchdog_health_classifier(self) -> None:
         now = 10_000.0

@@ -1,0 +1,50 @@
+# 4x4 2D Square-Lattice Antiferromagnetic Heisenberg Model (J2/J1 = 0)
+# Quantax v0.4.0 two-stage ResConv + MinSR/SR + C4v x Z2 symmetry projection
+# Includes QuSpin Exact ED, symm-test overlap, binning measurement, and ODR zero-variance extrapolation.
+
+backend: quantax
+
+system:
+  lattice: square
+  lx: 4
+  hamiltonian: heisenberg
+  j1: 1.0
+  j2: 0.0
+  msr: true
+  compute_exact: true
+
+model:
+  ansatz: resconv
+  nblocks: 2
+  channels: 8
+  kernel_size: 3
+  final_activation: exp
+  disable_tf32: false
+
+training:
+  seed: 42
+  nsamples: 1024
+  stage1_steps: 250
+  stage2_steps: 250
+  learning_rate: 0.005
+  stage2_learning_rate: 0.005
+  optimizer: sr
+  reweight: 2.0
+  max_parallel_stage1: 20000
+  max_parallel_stage2: 1024
+  sampler_neighbors: [1]
+
+analysis:
+  run_symm_test: true
+  run_binning: true
+  measure_nchains: 512
+  measure_nsweeps: 64
+  run_zero_var_extrap: true
+
+telemetry:
+  experiment_name: qtx_square4x4_heisenberg
+  wandb_project: nqs-colab
+  use_wandb: true
+  log_every: 25
+  checkpoint_dir: checkpoints
+  upload_wandb_artifact: true

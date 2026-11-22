@@ -1,10 +1,12 @@
 """Self-contained entrypoint executed on remote Google Colab VMs via `colab exec` or `colab run`.
 
 Design goals:
-  1. Idempotent environment check: installs matched NetKet/Flax/beartype<0.23/plum-dispatch<2.8
-     on fresh VMs and skips pip install in ~0.1s on reused hot sessions.
-  2. Clean subprocess execution: runs `python -m nqs.train` in a fresh child process so
-     downgraded packages (e.g. beartype<0.23) load cleanly without requiring a kernel restart.
+  1. Multi-backend support: automatically detects `backend: quantax` vs `netket`
+     from the experiment config file and installs only the matching environment
+     (idempotently skipping pip install in ~0.1s on reused hot sessions).
+  2. Clean subprocess execution: runs `python -u -m nqs.quantax_train` or
+     `python -u -m nqs.train` in a fresh child process, respecting Quantax's
+     one-Sites-per-process invariant and NetKet's beartype pin without kernel restarts.
   3. Configurable via either CLI arguments (`colab run`) or `--env` variables (`colab exec`).
 """
 
@@ -13,9 +15,13 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import os
+from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
+
+QUANTAX_BACKEND_RE = re.compile(r"^\s*backend\s*:\s*['\"]?quantax['\"]?\s*(#.*)?$", re.MULTILINE)
 
 
 def _parse_ver(pkg: str) -> tuple[int, int] | None:
@@ -26,7 +32,17 @@ def _parse_ver(pkg: str) -> tuple[int, int] | None:
         return None
 
 
-def _ensure_environment() -> None:
+def detect_backend(config_path: str | Path) -> str:
+    """Detect experiment backend (`quantax` or `netket`) without requiring PyYAML."""
+    p = Path(config_path)
+    if p.exists():
+        text = p.read_text(encoding="utf-8", errors="replace")
+        if QUANTAX_BACKEND_RE.search(text):
+            return "quantax"
+    return "netket"
+
+
+def _ensure_netket_environment() -> None:
     env_ready = (
         _parse_ver("NetKet") is not None
         and _parse_ver("wandb") is not None
@@ -65,7 +81,46 @@ def _ensure_environment() -> None:
             "matplotlib",
         ]
     )
-    print("[Remote] Environment setup complete.", flush=True)
+    print("[Remote] NetKet environment setup complete.", flush=True)
+
+
+def _ensure_quantax_environment() -> None:
+    env_ready = (
+        (_parse_ver("quantax") or (0, 0)) >= (0, 4)
+        and _parse_ver("quspin") is not None
+        and _parse_ver("odrpack") is not None
+        and _parse_ver("wandb") is not None
+        and _parse_ver("PyYAML") is not None
+        and _parse_ver("jax-cuda12-plugin") is None
+    )
+    if env_ready:
+        print("[Remote] Matched Quantax v0.4+ environment already installed. Skipping pip install.", flush=True)
+        return
+
+    has_gpu = shutil.which("nvidia-smi") is not None
+    print(f"[Remote] Setting up Quantax v0.4+ environment (GPU detected: {has_gpu})...", flush=True)
+
+    if _parse_ver("jax-cuda12-plugin") is not None:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "uninstall", "-y", "-q", "jax-cuda12-plugin", "jax-cuda12-pjrt"]
+        )
+
+    # Omit --upgrade so Colab's native CUDA 13 jax / jaxlib / jax-cuda13-plugin stay untouched.
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-q",
+            "quantax[full]>=0.4.0",
+            "odrpack",
+            "wandb",
+            "pyyaml",
+            "matplotlib",
+        ]
+    )
+    print("[Remote] Quantax environment setup complete.", flush=True)
 
 
 def _sync_repository(repo_url: str, branch: str, work_dir: str) -> None:
@@ -113,8 +168,18 @@ def main() -> None:
     args, _ = parser.parse_known_args()
 
     work_dir = "/content/NQS"
-    _ensure_environment()
     _sync_repository(args.repo_url, args.branch, work_dir)
+
+    cfg_full = os.path.join(work_dir, args.config)
+    backend = detect_backend(cfg_full)
+    print(f"[Remote] Detected backend '{backend}' for config '{args.config}'.", flush=True)
+
+    if backend == "quantax":
+        _ensure_quantax_environment()
+        module_name = "nqs.quantax_train"
+    else:
+        _ensure_netket_environment()
+        module_name = "nqs.train"
 
     env = os.environ.copy()
     src_dir = os.path.join(work_dir, "src")
@@ -125,7 +190,7 @@ def main() -> None:
         sys.executable,
         "-u",
         "-m",
-        "nqs.train",
+        module_name,
         "--config",
         args.config,
         "--checkpoint-dir",

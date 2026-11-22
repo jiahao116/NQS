@@ -20,6 +20,7 @@ NQS/
 ├── AGENTS.md                        # Master agent handover manual & mandatory project rules
 ├── README.md                        # Public repository overview
 ├── docs/WORKFLOW_GUIDE.md           # Chinese operational guide
+├── .agents/skills/                  # Auto-discovered NQS research skills (`quantax-core`, `measure`, `zero-var-extrap`, `symm-test`, `time-bench`)
 ├── configs/
 │   ├── tfim_1d_rbm.yaml             # Starter benchmark: 1D Critical TFIM (L=12) + RBM + SR (rel_err ~1.8e-5)
 │   ├── tfim_1d_gpt.yaml             # Autoregressive Causal Transformer on 1D Critical TFIM (L=12)

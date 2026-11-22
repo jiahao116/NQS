@@ -91,6 +91,18 @@ ssh nqs-vm 'journalctl -u nqs-watchdog -n 30 --no-pager'
 
 ---
 
+## 内置 NQS 科研 AI Skills（`.agents/skills/`）
+本仓库已在 `.agents/skills/` 中集成并吸收了面向前沿 2D NQS（Quantax v0.4.0）的 5 个工作区 Skill，Antigravity 会自动发现并按需加载：
+* **`quantax-core`**：Quantax 分层流水线、单进程全局 `Sites` 规范、`max_parallel` 批处理与 TF32/FP32 精度避坑、受挫符号结构（`msr=True` / `sinhp1_by_log`）与两阶段对称性投影工作流、Colab CUDA 13 + W&B 接入规范；
+* **`measure`**（源自 `ChenAo-Phys/quantax`，MIT 协议）：带流式 `BinningAccumulator` 的自相关时间 $\tau$ 分析、热化与冻链检验、对角/非对角算符打包测量；
+* **`zero-var-extrap`**（源自 `ChenAo-Phys/quantax`，MIT 协议）：基于 `odrpack` 的双轴误差 ODR 零方差外推、窗口网格系统误差、杠杆臂 $R$ 与变分下界检验；
+* **`symm-test`**（源自 `ChenAo-Phys/quantax`，MIT 协议）：对称性重叠 $O_T$ 诊断，用于决定对称性投影与识别自发对称性破缺；
+* **`time-bench`**（源自 `ChenAo-Phys/quantax`，MIT 协议）：`max_parallel` 批大小扫描、MFU 与 VMC 四阶段显存/耗时剖析。
+
+> 本地可选参考目录 `aochen/` 已加入 `.gitignore`，仅用于本地查阅第三方上游代码，绝不上传至 GitHub。
+
+---
+
 ## 换新电脑或重装环境时的恢复步骤
 1. 克隆仓库并安装本地防泄密 Git 钩子：
    ```bash
