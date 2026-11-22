@@ -1,0 +1,21 @@
+# Python bytecode & packaging
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Experiment outputs & local checkpoints
+outputs/
+checkpoints/
+wandb/
+*.mpack
+*.log
+
+# Secrets & local monitor state (NEVER commit API keys!)
+.env
+monitor/monitor_config.yaml
+monitor/.watchdog_state.json

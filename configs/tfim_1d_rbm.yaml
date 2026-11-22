@@ -1,0 +1,36 @@
+# ==============================================================================
+# 对照实验 #2：一维临界横场伊辛模型 + 经典 RBM + 随机重构 (Stochastic Reconfiguration)
+# 复现 Carleo & Troyer (Science 2017) 开山之作，极速达到 < 1e-5 相对误差
+# ==============================================================================
+
+system:
+  hamiltonian: tfim_1d
+  n_spins: 12
+  h_field: 1.0
+  j_coupling: 1.0
+  periodic: true
+  compute_exact: true
+
+model:
+  ansatz: rbm
+  rbm_alpha: 2          # 隐藏层神经元密度 alpha = 2 (共 24 个复数隐藏神经元)
+
+training:
+  seed: 42
+  n_samples: 1024
+  n_discard_per_chain: 64
+  n_steps: 300
+  optimizer: sgd
+  learning_rate: 0.02
+  use_sr: true          # 开启量子自然梯度 (Stochastic Reconfiguration)
+  diag_shift: 0.01
+  target_rel_error: 0.00005
+
+telemetry:
+  experiment_name: tfim1d_L12_rbm_sr
+  wandb_project: nqs-colab
+  use_wandb: true
+  log_every: 10
+  checkpoint_every: 50
+  checkpoint_dir: checkpoints
+  upload_wandb_checkpoint: true

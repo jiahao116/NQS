@@ -1,0 +1,7 @@
+# Colab 计算端依赖（Colab 自带 CUDA 版 JAX；脚本会自动根据是否有 GPU 选择 netket[cuda] 或 netket）
+netket>=3.12
+flax>=0.8
+optax>=0.2
+wandb>=0.17
+pyyaml>=6.0
+matplotlib>=3.8

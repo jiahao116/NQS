@@ -1,0 +1,37 @@
+# ==============================================================================
+# 进阶实验 #3：一维反铁磁海森堡链 (1D Antiferromagnetic Heisenberg, L=12)
+# 基态波函数正负号交替（Marshall 符号结构），开启 GPT 复相位分支 (use_phase: true)
+# ==============================================================================
+
+system:
+  hamiltonian: heisenberg_1d
+  n_spins: 12
+  j_coupling: 1.0
+  periodic: true
+  compute_exact: true
+
+model:
+  ansatz: gpt
+  d_model: 32
+  n_heads: 4
+  n_layers: 2
+  mlp_ratio: 2
+  use_phase: true       # 开启 [-pi, pi] 相位输出头以学习量子态正负号/复相位结构
+
+training:
+  seed: 42
+  n_samples: 1024
+  n_steps: 600
+  optimizer: adam
+  learning_rate: 0.002
+  use_sr: false
+  target_rel_error: 0.001
+
+telemetry:
+  experiment_name: heisenberg1d_L12_gpt
+  wandb_project: nqs-colab
+  use_wandb: true
+  log_every: 10
+  checkpoint_every: 50
+  checkpoint_dir: checkpoints
+  upload_wandb_checkpoint: true
