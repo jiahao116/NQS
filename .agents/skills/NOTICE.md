@@ -1,13 +1,11 @@
-# Third-Party Skill Attribution
+# Third-Party Attribution
 
-The following skills under `.agents/skills/` are adapted from [ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax) (v0.4.0) under the MIT License:
+The verification skills and scripts under `.agents/skills/` are adapted from [ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax) (v0.4.0) under the MIT License:
 
 - `measure/`
 - `symm-test/`
 - `time-bench/`
 - `zero-var-extrap/`
-
-`quantax-core/` is authored specifically for this repository to distill Quantax v0.4.0 API conventions, `sharp_bits.ipynb` caveats, and integration patterns with our Google Colab Pro+ / W&B workflow.
 
 ```text
 MIT License

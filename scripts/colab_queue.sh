@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Workflow 2: Unattended Long / Batch Queue inside tmux on GCP VM (nqs-vm)
+# Workflow 2: Unattended Long / Batch Queue inside tmux on a remote Linux host
 # Uses `colab run` so each job provisions a fresh Colab GPU, syncs W&B curves
 # and checkpoints, and AUTOMATICALLY releases the GPU immediately on exit.
-# Survives local Windows PC power-off / network disconnect completely!
+# Survives local machine power-off / network disconnect completely!
 #
 # Subcommands:
 #   submit <GPU> <config1.yaml> [config2.yaml ...]   Launch detached tmux queue
@@ -87,7 +87,7 @@ case "${cmd}" in
       echo "  if [[ \"\${FAILED}\" -eq 0 ]]; then"
       echo "    curl -fsS -H 'Title: NQS Queue Completed' -d \"All ${#configs[@]} Colab ${gpu} jobs finished cleanly!\" \"https://ntfy.sh/\${NTFY_TOPIC}\" >/dev/null || true"
       echo "  else"
-      echo "    curl -fsS -H 'Title: NQS Queue Finished With Errors' -H 'Priority: high' -d \"\${FAILED}/${#configs[@]} jobs failed. Check logs on nqs-vm.\" \"https://ntfy.sh/\${NTFY_TOPIC}\" >/dev/null || true"
+      echo "    curl -fsS -H 'Title: NQS Queue Finished With Errors' -H 'Priority: high' -d \"\${FAILED}/${#configs[@]} jobs failed. Check logs on the control host.\" \"https://ntfy.sh/\${NTFY_TOPIC}\" >/dev/null || true"
       echo "  fi"
       echo "fi"
     } > "${job_script}"

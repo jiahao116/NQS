@@ -251,7 +251,7 @@ def poll_once(cfg: WatchdogConfig, print_markdown: bool = False) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="GCP VM 24/7 Watchdog for Google Colab NQS runs.")
     parser.add_argument("--config", type=str, default="monitor/monitor_config.yaml", help="Watchdog YAML config.")
-    parser.add_argument("--once", action="store_true", help="Check once and exit (useful for CLI / Agent inspection).")
+    parser.add_argument("--once", action="store_true", help="Check once and exit (useful for CLI inspection or cron).")
     parser.add_argument("--markdown", action="store_true", help="Print Markdown summary table of recent runs.")
     args = parser.parse_args()
 

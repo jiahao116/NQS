@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Bootstrap script for the GCP e2-micro Linux control VM (nqs-vm).
+# Bootstrap script for a lightweight Linux control host (e.g. 1 GB RAM cloud VM).
 # Sets up:
-#   1. Permanent 2 GB swapfile (prevents OOM on 1 GB RAM e2-micro)
+#   1. Permanent 2 GB swapfile (prevents OOM on 1 GB RAM hosts)
 #   2. Base packages (git, tmux, curl, python3-venv, python3-pip)
 #   3. uv + official google-colab-cli
 #   4. NQS repository + lightweight monitor virtualenv

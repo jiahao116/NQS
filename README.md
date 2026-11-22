@@ -2,17 +2,15 @@
 
 **A lightweight, reproducible workflow for training and verifying Neural Quantum States (NQS) on Google Colab GPUs.**
 
-Powered by **[Quantax v0.4](https://github.com/ChenAo-Phys/quantax)** (by **Ao Chen**, JAX + Equinox + QuSpin, for 2D frustrated quantum magnets with MinSR/SR & space-group symmetry projection) and **NetKet 3** (JAX + Flax, for RBM & Autoregressive Causal Transformer baselines), orchestrated headlessly via **`google-colab-cli`** on an Always-Free **GCP Linux VM**, with **Drive-free Weights & Biases** telemetry and automated secret-leak protection (`v0.3.0`).
-
-> **AI Agent Handover**: If you are an AI agent taking over this repository, read **[AGENTS.md](AGENTS.md)** first for mandatory security rules, verified compatibility pins, and exact operational commands.
+Powered by **[Quantax v0.4](https://github.com/ChenAo-Phys/quantax)** (by **Ao Chen**, JAX + Equinox + QuSpin, for 2D frustrated quantum magnets with MinSR/SR & space-group symmetry projection) and **NetKet 3** (JAX + Flax, for RBM & Autoregressive Causal Transformer baselines), orchestrated headlessly via **`google-colab-cli`** on a lightweight remote Linux host with **Drive-free Weights & Biases** telemetry and automated secret-leak protection (`v0.3.0`).
 
 ---
 
 ## Verified Benchmark Results (Colab T4 GPU)
 
-> **Credit & Tribute**: The 2D Square-Lattice Heisenberg and frustrated J<sub>1</sub>-J<sub>2</sub> benchmarks below—including the two-stage `ResConv` + `SR/MinSR` + C<sub>4v</sub> × ℤ<sub>2</sub> symmetry-projection workflow and the post-training diagnostic skills (`measure`, `symm-test`, `zero-var-extrap`, `time-bench`)—are directly adapted from and pay tribute to **Ao Chen's** open-source **[ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax)** repository (see [`tutorials/J1J2.ipynb`](https://github.com/ChenAo-Phys/quantax/blob/main/tutorials/J1J2.ipynb) and its MIT-licensed `.agents/skills/`).
+> **Credit & Tribute**: The 2D Square-Lattice Heisenberg and frustrated J<sub>1</sub>-J<sub>2</sub> benchmarks below—including the two-stage `ResConv` + `SR/MinSR` + C<sub>4v</sub> × ℤ<sub>2</sub> symmetry-projection workflow and the post-training diagnostic utilities (`measure`, `symm-test`, `zero-var-extrap`, `time-bench`)—are directly adapted from and pay tribute to **Ao Chen's** open-source **[ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax)** repository (see [`tutorials/J1J2.ipynb`](https://github.com/ChenAo-Phys/quantax/blob/main/tutorials/J1J2.ipynb) and its MIT-licensed `.agents/skills/`).
 
-All benchmarks below were executed end-to-end on a single **Google Colab Pro+ NVIDIA T4 GPU** via our headless `nqs-vm` CLI pipeline and verified against Exact Diagonalization (QuSpin / Lanczos ED).
+All benchmarks below were executed end-to-end on a single **Google Colab Pro+ NVIDIA T4 GPU** via the headless Colab CLI pipeline and verified against Exact Diagonalization (QuSpin / Lanczos ED).
 
 ### Summary Comparison
 
@@ -52,13 +50,13 @@ All benchmarks below were executed end-to-end on a single **Google Colab Pro+ NV
 
 ---
 
-## Architecture Overview
+## Workflow Overview
 
-* **Dual Physics Backends (`scripts/colab_remote_runner.py`)**: Automatically inspects `backend:` in any YAML config (`quantax` vs `netket`), installs only the matching CUDA-13-safe environment on Colab, and runs each experiment inside a clean subprocess with live streamed logs.
-* **Built-In NQS Research Skills (`.agents/skills/`)**: Auto-discovered workspace skills (`quantax-core`, plus MIT-licensed `measure`, `zero-var-extrap`, `symm-test`, and `time-bench` adapted from **[ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax)**) enforcing rigorous error bars, symmetry verification, and ODR extrapolation.
-* **Workflow 1 — Short Verification (`scripts/colab_quick.sh`)**: Reuses a hot Google Colab GPU session (`colab new` → `colab exec --timeout 0` → `colab stop`) for rapid iteration.
-* **Workflow 2 — Long / Batch Unattended Queue (`scripts/colab_queue.sh`)**: Runs sequential `colab run --timeout 0` jobs inside detached `tmux` on the 24/7 GCP Linux VM (`nqs-vm`), auto-releasing each Colab GPU immediately on exit.
-* **Drive-Free Telemetry & 24/7 Watchdog (`Weights & Biases` + `monitor/gcp_watchdog.py`)**: Live curves, multi-panel figures, `.eqx`/`.mpack` checkpoints, and mobile alerts on completion, disconnect, or `NaN` divergence.
+* **Dual Physics Backends (`scripts/colab_remote_runner.py`)**: Automatically detects `backend:` in any YAML config (`quantax` vs `netket`), installs only the matching CUDA-13-safe environment on Colab, and runs each experiment in a clean subprocess with live streamed logs.
+* **NQS Verification Toolkit (`.agents/skills/`)**: Reusable MIT-licensed Quantax diagnostic scripts and specifications (`measure`, `zero-var-extrap`, `symm-test`, `time-bench`) adapted from **[ChenAo-Phys/quantax](https://github.com/ChenAo-Phys/quantax)** for autocorrelation binning, symmetry overlap checks, and ODR extrapolation.
+* **Quick Verification (`scripts/colab_quick.sh`)**: Reuses a hot Google Colab GPU session (`colab new` → `colab exec --timeout 0` → `colab stop`) for rapid iteration.
+* **Unattended Batch Queue (`scripts/colab_queue.sh`)**: Runs sequential `colab run --timeout 0` jobs inside detached `tmux` on a remote Linux control host, auto-releasing each Colab GPU immediately on exit.
+* **Drive-Free Telemetry & Watchdog (`Weights & Biases` + `monitor/gcp_watchdog.py`)**: Live curves, multi-panel figures, `.eqx`/`.mpack` checkpoints, and alerts on completion, disconnect, or `NaN` divergence.
 * **Built-In Secret Guard (`scripts/check_secrets.py`)**: Pre-commit hook + test suite scanning tracked/staged files and Git history to block any API key, token, or credential file.
 
 ---
@@ -67,12 +65,9 @@ All benchmarks below were executed end-to-end on a single **Google Colab Pro+ NV
 
 ```text
 NQS/
-├── AGENTS.md                        # Master agent handover manual & mandatory project rules
-├── README.md                        # Public repository overview & verified benchmark showcase
-├── docs/
-│   ├── WORKFLOW_GUIDE.md            # Chinese operational guide
-│   └── images/                      # High-resolution verified benchmark figures
-├── .agents/skills/                  # Auto-discovered NQS research skills (`quantax-core`, `measure`, `zero-var-extrap`, `symm-test`, `time-bench`)
+├── README.md                        # Repository overview & verified benchmark showcase
+├── docs/images/                     # High-resolution verified benchmark figures
+├── .agents/skills/                  # Quantax MIT-licensed verification tools (`measure`, `zero-var-extrap`, `symm-test`, `time-bench`)
 ├── configs/
 │   ├── qtx_square4x4_heisenberg.yaml # Quantax 2D 4x4 Square Heisenberg (J2=0, rel_err 5.95e-7, F=1.000000)
 │   ├── qtx_square4x4_j1j2.yaml       # Quantax 2D 4x4 Frustrated J1-J2 (J2=0.5, rel_err 1.91e-3, F=0.9961)
@@ -82,17 +77,17 @@ NQS/
 ├── src/nqs/
 │   ├── quantax_train.py             # Quantax v0.4 two-stage VMC + symmetry projection + W&B runner
 │   ├── quantax_analysis.py          # BinningAccumulator, symm-test O_T, ODR extrapolation, 3-panel plots
-│   ├── config.py / physics.py / models.py / checkpoint.py / train.py  # NetKet 3 backend
+│   └── config.py / physics.py / models.py / checkpoint.py / train.py  # NetKet 3 backend
 ├── scripts/
 │   ├── colab_remote_runner.py       # Multi-backend Colab runner (auto-detects Quantax vs NetKet)
-│   ├── colab_quick.sh               # Workflow 1: hot-GPU quick verification
-│   ├── colab_queue.sh               # Workflow 2: detached tmux unattended queue (`colab run`)
-│   ├── bootstrap_vm.sh              # GCP e2-micro bootstrap (2 GB swap, tmux, uv, google-colab-cli)
+│   ├── colab_quick.sh               # Hot-GPU quick verification wrapper
+│   ├── colab_queue.sh               # Detached tmux unattended batch queue (`colab run`)
+│   ├── bootstrap_vm.sh              # Linux control host setup (2 GB swap, tmux, uv, google-colab-cli)
 │   ├── check_secrets.py             # Automated API-key / credential leak scanner
 │   └── install_git_hooks.sh         # Installs local `.git/hooks/pre-commit` secret guard
-├── monitor/                         # 24/7 W&B heartbeat watchdog & systemd setup
-├── notebooks/colab_runner.ipynb     # Verified browser fallback notebook
-└── tests/test_workflow_local.py     # Local test suite (security, English-only code, AST, configs, watchdog)
+├── monitor/                         # Lightweight W&B heartbeat watchdog & systemd setup
+├── notebooks/colab_runner.ipynb     # Verified browser fallback notebook for Google Colab
+└── tests/test_workflow_local.py     # Local test suite (security, syntax, configs, watchdog)
 ```
 
 ---
@@ -109,5 +104,3 @@ python tests/test_workflow_local.py
 PYTHONPATH=src python -u -m nqs.quantax_train --config configs/qtx_square4x4_heisenberg.yaml
 PYTHONPATH=src python -u -m nqs.quantax_train --config configs/qtx_square4x4_j1j2.yaml
 ```
-
-See **[AGENTS.md](AGENTS.md)** for full technical reference and **[docs/WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md)** for the Chinese operational handbook.

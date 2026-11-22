@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Workflow 1: Fast Interactive / Short Verification via Hot Colab GPU Session
-# Runs on the GCP Linux VM (nqs-vm), invoked via `ssh nqs-vm "bash ~/NQS/scripts/colab_quick.sh ..."`.
+# Runs on a remote Linux control host, invoked via `ssh <host> "bash ~/NQS/scripts/colab_quick.sh ..."`.
 #
 # Subcommands:
 #   start [GPU]                          Allocate hot session `nqs-quick` (default: T4)
