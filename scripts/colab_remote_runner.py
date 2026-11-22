@@ -139,7 +139,23 @@ def main() -> None:
         cmd.append("--no-wandb")
 
     print(f"[Remote] Launching clean subprocess: {' '.join(cmd)}", flush=True)
-    subprocess.check_call(cmd, cwd=work_dir, env=env)
+    # Pipe child stdout/stderr through Python sys.stdout so Jupyter/Colab CLI
+    # streams every training step and W&B URL live to the caller terminal.
+    proc = subprocess.Popen(
+        cmd,
+        cwd=work_dir,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    assert proc.stdout is not None
+    for line in proc.stdout:
+        print(line, end="", flush=True)
+    rc = proc.wait()
+    if rc != 0:
+        raise SystemExit(rc)
 
 
 if __name__ == "__main__":
