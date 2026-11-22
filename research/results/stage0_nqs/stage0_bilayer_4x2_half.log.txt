@@ -1,0 +1,44 @@
+﻿From https://github.com/jiahao116/NQS
+ * branch            main       -> FETCH_HEAD
+Already up to date.
+[Quick] Running 'research/configs/stage0_bilayer_4x2_half.yaml' on hot session 'nqs-quick'...
+[Remote] Cloning https://github.com/jiahao116/NQS.git (main) into /content/NQS...
+[Remote] Detected backend 'quantax' for config 'research/configs/stage0_bilayer_4x2_half.yaml'.
+[Remote] Setting up Quantax v0.4+ environment (GPU detected: True)...
+[Remote] Quantax environment setup complete.
+[Remote] Using custom runner module 'mixd.train_quantax'.
+[Remote] Launching clean subprocess: /usr/bin/python3 -u -m mixd.train_quantax --config research/configs/stage0_bilayer_4x2_half.yaml --checkpoint-dir /content/NQS/checkpoints --no-wandb
+========================================================================
+[mixd] experiment : stage0_bilayer_4x2_half
+[mixd] devices    : [CudaDevice(id=0)]
+[mixd] cluster    : 4x2x2_pp (N=16, bonds=32), J_par=1.0, J_perp=1.0, msr=True
+========================================================================
+[check] quantax-operator ED (float64, dim=12870): E0 = -11.2284832084 (0.1s)
+[check] numba ED reference E0 = -11.2284832084 | diff = -8.88e-15 -> PASS
+[model] parameters: 6,952
+[Stage1   25/300] E = -10.136269 | VarE = 2.740e+00 | V-score = 4.267e-01 | rel_err = 9.73e-02 (498 ms/step)
+[Stage1   50/300] E = -10.702468 | VarE = 1.194e+00 | V-score = 1.668e-01 | rel_err = 4.68e-02 (167 ms/step)
+[Stage1   75/300] E = -10.893778 | VarE = 6.124e-01 | V-score = 8.257e-02 | rel_err = 2.98e-02 (129 ms/step)
+[Stage1  100/300] E = -11.044016 | VarE = 3.870e-01 | V-score = 5.077e-02 | rel_err = 1.64e-02 (133 ms/step)
+[Stage1  125/300] E = -11.106287 | VarE = 2.413e-01 | V-score = 3.129e-02 | rel_err = 1.09e-02 (129 ms/step)
+[Stage1  150/300] E = -11.167539 | VarE = 1.500e-01 | V-score = 1.924e-02 | rel_err = 5.43e-03 (131 ms/step)
+[Stage1  175/300] E = -11.178606 | VarE = 9.892e-02 | V-score = 1.267e-02 | rel_err = 4.44e-03 (132 ms/step)
+[Stage1  200/300] E = -11.202551 | VarE = 6.679e-02 | V-score = 8.515e-03 | rel_err = 2.31e-03 (135 ms/step)
+[Stage1  225/300] E = -11.203988 | VarE = 4.273e-02 | V-score = 5.447e-03 | rel_err = 2.18e-03 (132 ms/step)
+[Stage1  250/300] E = -11.211458 | VarE = 3.168e-02 | V-score = 4.032e-03 | rel_err = 1.52e-03 (134 ms/step)
+[Stage1  275/300] E = -11.224009 | VarE = 2.162e-02 | V-score = 2.746e-03 | rel_err = 3.99e-04 (135 ms/step)
+[Stage1  300/300] E = -11.222905 | VarE = 1.487e-02 | V-score = 1.889e-03 | rel_err = 4.97e-04 (137 ms/step)
+[Stage2   25/300] E = -11.217842 | VarE = 1.280e-02 | V-score = 1.627e-03 | rel_err = 9.48e-04 (489 ms/step)
+[Stage2   50/300] E = -11.229963 | VarE = 7.693e-03 | V-score = 9.760e-04 | rel_err = 1.32e-04 (172 ms/step)
+[Stage2   75/300] E = -11.222645 | VarE = 9.530e-03 | V-score = 1.211e-03 | rel_err = 5.20e-04 (173 ms/step)
+[Stage2  100/300] E = -11.225441 | VarE = 4.617e-03 | V-score = 5.862e-04 | rel_err = 2.71e-04 (174 ms/step)
+[Stage2  125/300] E = -11.230455 | VarE = 3.173e-03 | V-score = 4.026e-04 | rel_err = 1.76e-04 (177 ms/step)
+[Stage2  150/300] E = -11.227697 | VarE = 2.866e-03 | V-score = 3.637e-04 | rel_err = 7.00e-05 (176 ms/step)
+[Stage2  175/300] E = -11.227454 | VarE = 2.213e-03 | V-score = 2.809e-04 | rel_err = 9.16e-05 (178 ms/step)
+[Stage2  200/300] E = -11.228217 | VarE = 2.101e-03 | V-score = 2.666e-04 | rel_err = 2.37e-05 (179 ms/step)
+[Stage2  225/300] E = -11.228436 | VarE = 2.959e-03 | V-score = 3.755e-04 | rel_err = 4.25e-06 (176 ms/step)
+[Stage2  250/300] E = -11.228313 | VarE = 1.666e-03 | V-score = 2.115e-04 | rel_err = 1.51e-05 (174 ms/step)
+[Stage2  275/300] E = -11.228209 | VarE = 1.080e-03 | V-score = 1.370e-04 | rel_err = 2.45e-05 (178 ms/step)
+[Stage2  300/300] E = -11.228310 | VarE = 1.556e-03 | V-score = 1.974e-04 | rel_err = 1.55e-05 (173 ms/step)
+[dense] E_NQS = -11.2282753210 | E_exact = -11.2284832084 | rel_err = 1.851e-05 | fidelity = 0.99995650
+RESULT_JSON: {"experiment": "stage0_bilayer_4x2_half", "cluster": "4x2x2_pp", "n_sites": 16, "j_par": 1.0, "j_perp": 1.0, "convention": "spin-1/2 S.S", "operator_check_pass": true, "E_exact": -11.22848320842887, "E_nqs_dense": -11.228275321009985, "rel_err_dense": 1.851429218227911e-05, "fidelity": 0.9999565036349788, "E_last_stage1": -11.222905158996582, "E_last_stage2": -11.228309631347656, "nparams": 6952, "train_time_s": 124.6, "devices": "[CudaDevice(id=0)]"}

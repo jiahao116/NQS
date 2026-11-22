@@ -1,0 +1,18 @@
+﻿{
+    "experiment":  "stage0_trilayer_4x2_half",
+    "cluster":  "4x2x3_pp",
+    "n_sites":  24,
+    "j_par":  1.0,
+    "j_perp":  1.0,
+    "convention":  "spin-1/2 S.S",
+    "operator_check_pass":  true,
+    "E_exact":  -17.53531626329781,
+    "E_nqs_dense":  -17.531917021245448,
+    "rel_err_dense":  0.0001938511972820856,
+    "fidelity":  0.9988248796733787,
+    "E_last_stage1":  -17.495670318603516,
+    "E_last_stage2":  -17.532968521118164,
+    "nparams":  6952,
+    "train_time_s":  169.0,
+    "devices":  "[CudaDevice(id=0)]"
+}

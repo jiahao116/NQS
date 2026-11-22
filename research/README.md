@@ -18,6 +18,7 @@ trilayer nickelate La₄Ni₃O₁₀.** See [proposals/trilayer_mixd_nqs.md](pro
 | `src/mixd/` | Study-specific code: multilayer lattice / bond lists, numba ED, QuSpin ED, quantax operators |
 | `scripts/` | Batch and analysis scripts (e.g. `run_ed_stage0.py`) |
 | `ed/` | Exact-diagonalization reference results |
+| `results/` | Small, curated NQS results (JSON summaries and run logs) |
 | `runs/` | Training outputs and checkpoints (git-ignored) |
 | `figures/` | Figures |
 
@@ -34,3 +35,9 @@ cd research
 python scripts/run_ed_stage0.py --config configs/stage0_ed_scan.yaml --max-sites 24
 ```
 Requires `numpy`, `scipy`, `numba`, `pyyaml`. Results go to `ed/stage0/` (`summary.md` + one JSON per point).
+
+## Run NQS on Colab
+Research configs declare `runner: mixd.train_quantax`; the standard Colab runner dispatches them with
+`research/src` on `PYTHONPATH`. Pass the config path relative to the repository root, e.g.
+`research/configs/stage0_trilayer_4x2_half.yaml`. Each run first checks the quantax operator against the
+numba ED reference (float64) and ends with a `RESULT_JSON:` line.
