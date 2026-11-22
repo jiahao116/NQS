@@ -1,9 +1,9 @@
 # Stage 0 NQS (ED-verifiable): half-filled mixD TRILAYER Heisenberg on 4x2x3 (24 sites)
 # Purpose: validate the multilayer quantax operator + NQS pipeline against exact ED
-# (research/ed/stage0) before going to 4x4x3. Not runnable yet: requires the research
-# NQS runner (to be written in research/src).
+# (research/ed/stage0) before going to 4x4x3.
 
 backend: quantax
+runner: mixd.train_quantax   # research runner (research/src/mixd/train_quantax.py)
 
 system:
   lattice: multilayer_square
@@ -24,7 +24,7 @@ model:
   channels: 8
   kernel_size: 3
   final_activation: exp
-  layer_axis: grid            # OPEN DECISION: treat layers as a 3rd grid axis vs as channels
+  projection: [spin_inverse]  # Stage-2 symmetry projection; layers are the 3rd (open) grid axis
   disable_tf32: false
 
 training:

@@ -4,6 +4,7 @@
 # no sign problem, so an exact stochastic reference is available at this size.
 
 backend: quantax
+runner: mixd.train_quantax   # research runner (research/src/mixd/train_quantax.py)
 
 system:
   lattice: multilayer_square

@@ -2,6 +2,7 @@
 # Same in-plane cluster as the trilayer run, for the controlled n_layers = 2 vs 3 comparison.
 
 backend: quantax
+runner: mixd.train_quantax   # research runner (research/src/mixd/train_quantax.py)
 
 system:
   lattice: multilayer_square
