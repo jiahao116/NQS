@@ -15,11 +15,20 @@ sys.path.insert(0, str(ROOT))
 
 from monitor.gcp_watchdog import classify_run_health
 from nqs.config import ExperimentConfig, ModelConfig, SystemConfig
+from scripts.check_secrets import scan_tracked
 
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
 
 class WorkflowSmokeTests(unittest.TestCase):
+    def test_no_secrets_or_forbidden_files_in_tracked_repo(self) -> None:
+        findings = scan_tracked()
+        self.assertEqual(
+            findings,
+            [],
+            msg="Security violation — secrets or forbidden files detected:\n" + "\n".join(findings),
+        )
+
     def test_all_python_sources_compile(self) -> None:
         py_files = (
             list((ROOT / "src").rglob("*.py"))

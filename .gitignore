@@ -1,3 +1,26 @@
+# ==============================================================================
+# SECURITY FIRST: Never commit API keys, tokens, SSH keys, or cloud credentials
+# ==============================================================================
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.token
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*credentials*.json
+*secret*.json
+*service-account*.json
+*service_account*.json
+*oauth*.json
+.colab-cli-oauth*
+monitor/monitor_config.yaml
+monitor/.watchdog_state.json
+
 # Python bytecode & packaging
 __pycache__/
 *.py[cod]
@@ -6,17 +29,19 @@ __pycache__/
 dist/
 build/
 .venv/
+.venv-monitor/
 venv/
 
-# Experiment outputs & local checkpoints
+# OS & cloud-sync temp folders
+.tmp.driveupload/
+.tmp.drivedownload/
+.DS_Store
+Thumbs.db
+
+# Experiment outputs, logs, & local checkpoints
 outputs/
 checkpoints/
 logs/
 wandb/
 *.mpack
 *.log
-
-# Secrets & local monitor state (NEVER commit API keys!)
-.env
-monitor/monitor_config.yaml
-monitor/.watchdog_state.json

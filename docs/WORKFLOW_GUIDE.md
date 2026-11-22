@@ -1,67 +1,102 @@
-# 全流程操作手册：Colab GPU (2500 Units 免 Drive 版) + GCP 云端哨兵与主控台
+# NQS 云端双流程操作手册（v0.2.0 正式运行版）
 
-本指南已针对你的账号资源完成定制：
-* **GitHub 账号**：已自动关联你的本地 Git 用户名 **`jiahao116`**。
-* **完全免 Google Drive**：所有收敛曲线、实验指标、断点续训文件（`.mpack`）全部走 **Weights & Biases (W&B)** 云端同步，省去每次弹窗授权 Google Drive 的麻烦。
-* **Colab GPU 加速 + 2500 Compute Units 后台运行**：默认从最经典、在 GPU 上 20~40 秒就能收敛到 $10^{-5}$ 误差的 **1D 横场伊辛模型 + RBM + SR** 算例入手（同时仓库里也保留了自回归 Transformer 波函数供进阶对比），并内置**算完自动释放 GPU（`runtime.unassign()`）**开关，防止挂机白烧 Units。
-* **GCP 每月 \$100 试用额度安全防扣费策略**：详细说明如何确认不扣信用卡，以及 `e2-micro`（纯免费）和 `e2-medium`（约 \$24/月额度，可直接当云端常驻开发机）的选型建议。
+> 本文档始终与当前仓库架构同步；任何过时步骤已清除。面向新接手 AI Agent 的完整技术交接规范请见根目录 **[AGENTS.md](../AGENTS.md)**。
 
 ---
 
-## 整体架构图（免 Google Drive 纯净版）
+## 第一原则：安全与防扣费红线（永远排第 1 位）
+
+本仓库为 **GitHub 公开仓库**，每次改代码与提交必须死守以下底线：
+1. **绝不提交任何密钥与隐私文件**：`WANDB_API_KEY`、GCP 凭据 JSON、SSH 密钥、`.env`、真实 `NTFY_TOPIC`、GCP 项目 ID 与虚拟机外网 IP 均保存在仓库外（本地 `~/.ssh/` 或虚拟机本地 `~/NQS/.env`），**绝不写入 Git**。
+2. **三道自动防泄密门禁**：
+   * `.gitignore` 屏蔽所有 `.env*`、`*.key`、`*.pem`、`*credentials*.json`、`monitor/monitor_config.yaml` 等文件；
+   * 本地 Git `pre-commit` 钩子在每次 `git commit` 前自动运行 `scripts/check_secrets.py --staged`，一旦发现疑似 API Key 立刻拦截提交；
+   * 本地自测 `python tests/test_workflow_local.py` 每次都会执行全仓密钥扫描与代码纯英文检查。
+3. **不乱烧算力与信用卡**：
+   * 短验证用完热 GPU 立刻 `colab_quick.sh stop`；
+   * 长任务走 `colab_queue.sh`（底层 `colab run` 跑完自动销毁 GPU）；
+   * GCP 虚拟机固定使用永久免费档 `e2-micro`（`us-central1` + 20 GB 标准永久盘 + 2 GB Swap），且账户已设 \$1 账单告警兜底。
+
+---
+
+## 当前运行架构总览（方案 A：无浏览器双流程）
 
 ```mermaid
 flowchart LR
-    GH["GitHub 仓库<br/>github.com/jiahao116/NQS"] -->|"git pull"| COLAB["Google Colab (2500 Units)<br/>T4 / L4 GPU + 后台运行 + 算完自动释放"]
-    COLAB <-->|"每 10 步推曲线与心跳<br/>每 50 步同步 Checkpoint"| WANDB["Weights & Biases 云端面板<br/>(手机随时看曲线 + 免 Drive 存断点)"]
-    WANDB -->|"每 2 分钟轻量 API 轮询"| GCP["Google Cloud 常驻虚拟机<br/>(monitor/gcp_watchdog.py + SSH 主控台)"]
-    GCP -->|"掉线 / NaN / 完成通知"| PHONE["手机推送通知 (ntfy App)"]
+    PC["本地 Windows 电脑<br/>(你 + Antigravity)<br/>只负责写代码与下发命令<br/>随时断电关机零影响"]
+    GH["GitHub 公开仓库<br/>(jiahao116/NQS)"]
+    VM["GCP 永久免费 e2-micro (nqs-vm)<br/>24h 在线，不装 Antigravity<br/>google-colab-cli + tmux + 哨兵"]
+    COLAB["Google Colab Pro+ GPU<br/>(T4 / L4 / A100)<br/>按需开启，算完自动释放"]
+    WANDB["Weights & Biases<br/>(免 Google Drive)<br/>手机看曲线 + 云端存断点"]
+    PHONE["你的手机<br/>浏览器看曲线 + ntfy 收告警"]
+
+    PC -->|"git push"| GH
+    PC -->|"免密 ssh nqs-vm"| VM
+    GH -->|"git pull"| VM
+    VM -->|"短验证: colab_quick.sh<br/>长任务: colab_queue.sh"| COLAB
+    COLAB <-->|"实时曲线 + 心跳 + .mpack 断点"| WANDB
+    VM -->|"systemd 哨兵每 2 分钟巡检"| WANDB
+    VM -->|"完成 / 断连 / NaN 推送"| PHONE
+    WANDB -.->|"手机随时看曲线"| PHONE
 ```
 
 ---
 
-## 第一步：一键打开 Colab 跑通第一个 GPU NQS 实验
+## 日常双流程操作速查
 
-👉 **直达链接**：https://colab.research.google.com/github/jiahao116/NQS/blob/main/notebooks/colab_runner.ipynb
+> 日常只需在本地直接用中文告诉 Antigravity 你想跑什么实验，以下为底层执行的标准命令参考。
 
-1. **选 GPU 与后台执行**：
-   * 顶部 **`Runtime` -> `Change runtime type`**：入门算例选 **`T4 GPU`** 即可（每小时仅耗约 `1.2 ~ 2` Units，跑一次入门实验只花 **~0.02 Unit**！以后算大体系再开 `L4` / `A100`）。
-   * 如界面有 **`Background execution`（后台执行）** 勾选框，勾上它——**勾上后哪怕家里电脑立刻断电断网，Colab 也会自己在云端跑完！**
-2. **填一次 W&B 密钥（可选，但强烈推荐）**：
-   * 打开 https://wandb.ai/authorize 复制免费 API Key。
-   * 点击 Colab 左侧 **🔑 Secrets** 钥匙图标，添加 `WANDB_API_KEY`，粘贴 Key 并打开读取开关（如果先不想登录 W&B，把第 3 格的 `USE_WANDB` 取消勾选也能直接裸跑出图）。
-3. **防白烧 Units 开关**：
-   * 自己看着屏幕调试时：第 4 格保持 `AUTO_DISCONNECT_WHEN_DONE = False`。
-   * 准备挂长任务离开电脑时：**勾选 `AUTO_DISCONNECT_WHEN_DONE = True`**——程序算完上传结果 5 秒后会调用 `runtime.unassign()` 自动释放 GPU 实例。
-4. 点击 **`Runtime` -> `Run all`**！
-   * 默认运行 `configs/tfim_1d_rbm.yaml`（12 自旋一维横场伊辛临界点 + 经典 RBM + 量子自然梯度 SR，约 **20~40 秒**）：程序会先用精确对角化算出真值 `E0 ≈ -15.3226`，随后画出变分能量逼近精确解红虚线的收敛图（误差可达 `1e-5` 量级）。
-   * 也可以把第 4 格下拉框切到 `configs/tfim_1d_gpt.yaml` 或 `configs/heisenberg_1d_gpt.yaml` 对比现代自回归 Transformer 波函数！
+### 流程 ①：短时间验证 / 快速试错（复用热 GPU，几十秒出结果）
+```powershell
+# 1. 启动一个热 Colab GPU 会话（可选 T4 / L4 / A100）
+ssh nqs-vm 'bash NQS/scripts/colab_quick.sh start T4'
+
+# 2. 快速执行验证（自动拉最新 GitHub 代码，首次后跳过 pip install，日志实时回显）
+ssh nqs-vm 'bash NQS/scripts/colab_quick.sh run configs/tfim_1d_rbm.yaml --fresh'
+
+# 3. 测完务必关闭热会话释放 GPU，停止消耗 Units！
+ssh nqs-vm 'bash NQS/scripts/colab_quick.sh stop'
+```
+
+### 流程 ②：长时间计算 / 批量扫参数（`tmux` 后台托管，下发后可立刻关电脑）
+```powershell
+# 1. 提交任务队列到虚拟机后台 tmux（每个任务用 `colab run` 跑完自动销毁 GPU）
+ssh nqs-vm 'bash NQS/scripts/colab_queue.sh submit T4 configs/tfim_1d_rbm.yaml configs/tfim_1d_gpt.yaml'
+
+# 2. 随时查看队列运行状态与最新日志
+ssh nqs-vm 'bash NQS/scripts/colab_queue.sh status'
+
+# 3. 如需中途取消队列
+ssh nqs-vm 'bash NQS/scripts/colab_queue.sh stop'
+```
+
+### 常用监控与维护命令
+```powershell
+# 查看 Colab Compute Units 余额 & 确认没有遗漏挂机的 GPU
+ssh nqs-vm '~/.local/bin/colab --auth=adc usage && ~/.local/bin/colab --auth=adc sessions'
+
+# 拉取最近所有 W&B 实验的 Markdown 汇总表
+ssh nqs-vm 'set -a; source NQS/.env; set +a; NQS/.venv-monitor/bin/python NQS/monitor/gcp_watchdog.py --config NQS/monitor/monitor_config.yaml --once --markdown'
+
+# 查看 24 小时哨兵运行状态与实时日志
+ssh nqs-vm 'systemctl status nqs-watchdog.service --no-pager'
+ssh nqs-vm 'journalctl -u nqs-watchdog -n 30 --no-pager'
+```
 
 ---
 
-## 第二步：Google Cloud 虚拟机配置与“绝不扣信用卡”双保险
+## 网页手动备用入口（无需本地电脑）
+万一在外只想纯用手机/平板临时点一下运行，依然可直接打开已验证通过的免 Drive 版网页工作台（注意：**只运行，不要点 Colab 顶部的“保存到 GitHub”**）：
+* https://colab.research.google.com/github/jiahao116/NQS/blob/main/notebooks/colab_runner.ipynb
 
-### 2.1 先花 30 秒确认：怎么保证绝对不扣信用卡？
-打开 [Google Cloud Billing 概览页](https://console.cloud.google.com/billing) 查看你的账单账户属性：
-1. **情况 A：显示“免费试用（Free Trial）”或独立赠金账户（未点过升级付费账户）**
-   * **天然防扣费**：额度花完自动停机，只要你不手动点 Upgrade 为正式付费账户，永远不会扣信用卡。
-2. **情况 B：已升级为正式付费账户（Paid Account），每月发放 \$100 Credit**
-   * 超过 \$100 的部分会扣卡。请立刻在左侧 **`Budgets & alerts` -> `Create Budget`** 建一个 **\$50 预算告警**兜底。只要只跑下面推荐的监控/开发机，每月只耗 **\$0 ～ \$24 额度**，非常安全。
+---
 
-### 2.2 虚拟机规格怎么选？
-* **选项 1（纯 \$0 永久免费）：`e2-micro`**（2 vCPU, 1 GB 内存，`us-central1`/`us-west1`/`us-east1`，20 GB 标准永久磁盘）。只跑后台监控哨兵 `gcp_watchdog.py`，不花一分钱额度。
-* **选项 2（推荐，月耗约 \$24 试用额度）：`e2-medium`**（2 vCPU, **4 GB 内存**，30 GB 磁盘）。除了 7×24 小时跑哨兵，4 GB 内存足够你用 **Remote-SSH** 直接把开发环境和我（AI 助手）常驻在云端，家里电脑断电重连后上下文不丢。
-
-### 2.3 在 GCP 虚拟机上一键启动 24 小时哨兵
-SSH 登录虚拟机后运行：
-```bash
-git clone https://github.com/jiahao116/NQS.git
-cd NQS
-export WANDB_API_KEY="paste_your_wandb_api_key_here"
-export NTFY_TOPIC="nqs-jiahao116-random1234"
-bash monitor/setup_gcp_vm.sh
-```
-随时打印所有 Colab 实验汇总表：
-```bash
-.venv-monitor/bin/python monitor/gcp_watchdog.py --once --markdown
-```
+## 换新电脑或重装环境时的恢复步骤
+1. 克隆仓库并安装本地防泄密 Git 钩子：
+   ```bash
+   git clone https://github.com/jiahao116/NQS.git
+   cd NQS
+   bash scripts/install_git_hooks.sh
+   ```
+2. 把本机 `~/.ssh/config` 配好 `Host nqs-vm` 即可恢复对云主机与 Colab GPU 的全部操控。
+3. 若需重新初始化一台全新的 GCP Ubuntu `e2-micro` 虚拟机，在虚拟机里依次运行 `scripts/bootstrap_vm.sh`、一次性 `gcloud auth application-default login` 授权、以及 `monitor/setup_gcp_vm.sh` 即可完整复原。
