@@ -26,4 +26,8 @@
 | 4x2x3 三层 | PASS（差 1e-14） | -17.5353163 | -17.5319170 | 1.94e-4 | 0.998825 | 169 s |
 
 - 观察：同样设置下三层比双层难约一个数量级（三层能隙更小、内层受挫），且 Stage 2 末尾 VarE 仍在下降，尚未收敛。原始日志与 JSON 在 `results/stage0_nqs/`。
-- 下一步：三层加长训练 / 加宽网络看能否到 ~1e-5；然后上 4x4x{2,3}（无 ED，可用 SSE-QMC 或尺寸外推作参考）；准备阶段 1（少空穴 t-J）。
+- **阶段 0b 收敛测试（部分完成，已按指令暂停）**：
+  - `stage0b_trilayer_4x2_long`（ResConv 2×8，6,952 参数，1500+1500 步，890 s）：**相对误差从 `1.94e-4` 降到 `5.18e-5`，保真度 `0.999884`**（`VarE` 在 `~1e-2` 处趋平）。结果已存入 `results/stage0_nqs/stage0b_trilayer_4x2_long.*`。
+  - `stage0b_trilayer_4x2_wide`（4×16，55,440 参数，600+600 步）：调低 `max_parallel` 后提速至 ~0.9 s/step，跑至 Stage 2 第 200 步（`VarE = 1.295e-2`）时暂停；其余两个队列任务（`wide_long`）尚未运行。
+  - 修复了 `scripts/colab_queue.sh stop` 不会清理残留 Colab `run-*` 会话的 bug。
+- 下一步：继续跑完 `stage0b` 剩余 3 个配置（或直接转向阶段 1 少空穴 t-J）。
