@@ -8,8 +8,6 @@ Design goals:
      `python -u -m nqs.train` in a fresh child process, respecting Quantax's
      one-Sites-per-process invariant and NetKet's beartype pin without kernel restarts.
   3. Configurable via either CLI arguments (`colab run`) or `--env` variables (`colab exec`).
-  4. Optional `runner: <module>` key in a config selects a custom entrypoint module
-     (e.g. `mixd.train_quantax` for research/ configs); `research/src` is on PYTHONPATH.
 """
 
 from __future__ import annotations
@@ -24,18 +22,6 @@ import subprocess
 import sys
 
 QUANTAX_BACKEND_RE = re.compile(r"^\s*backend\s*:\s*['\"]?quantax['\"]?\s*(#.*)?$", re.MULTILINE)
-# Optional custom entrypoint module, e.g. `runner: mixd.train_quantax` for research/ configs.
-RUNNER_RE = re.compile(r"^\s*runner\s*:\s*['\"]?([A-Za-z_][\w.]*)['\"]?\s*(#.*)?$", re.MULTILINE)
-
-
-def detect_runner(config_path: str | Path) -> str | None:
-    """Return the custom runner module declared in the config, if any."""
-    p = Path(config_path)
-    if p.exists():
-        m = RUNNER_RE.search(p.read_text(encoding="utf-8", errors="replace"))
-        if m:
-            return m.group(1)
-    return None
 
 
 def _parse_ver(pkg: str) -> tuple[int, int] | None:
@@ -194,14 +180,10 @@ def main() -> None:
     else:
         _ensure_netket_environment()
         module_name = "nqs.train"
-    custom_runner = detect_runner(cfg_full)
-    if custom_runner:
-        module_name = custom_runner
-        print(f"[Remote] Using custom runner module '{module_name}'.", flush=True)
 
     env = os.environ.copy()
-    src_dirs = [os.path.join(work_dir, "src"), os.path.join(work_dir, "research", "src")]
-    env["PYTHONPATH"] = ":".join(src_dirs + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    src_dir = os.path.join(work_dir, "src")
+    env["PYTHONPATH"] = f"{src_dir}:{env.get('PYTHONPATH', '')}".rstrip(":")
     env["PYTHONUNBUFFERED"] = "1"
 
     cmd = [

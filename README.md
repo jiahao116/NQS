@@ -73,15 +73,8 @@ NQS/
 │   └── install_git_hooks.sh         # Installs local `.git/hooks/pre-commit` secret guard
 ├── monitor/                         # Lightweight W&B heartbeat watchdog & systemd setup
 ├── notebooks/colab_runner.ipynb     # Verified browser fallback notebook for Google Colab
-├── research/                        # Ongoing study: mixD bilayer vs trilayer t-J with NQS (see research/README.md)
 └── tests/test_workflow_local.py     # Local test suite (security, syntax, configs, watchdog)
 ```
-
----
-
-## Ongoing Research: Mixed-Dimensional Multilayer t-J Models
-
-`research/` hosts a work-in-progress study comparing mixed-dimensional (mixD) **bilayer vs trilayer** t∥-J∥-J⊥ models with neural quantum states, motivated by the much lower T<sub>c</sub> of the trilayer nickelate La₄Ni₃O₁₀ compared with bilayer La₃Ni₂O₇ ("interlayer pairing frustration"). Stage 0 provides exact-diagonalization references for the half-filled (Heisenberg) limit on clusters up to 24 sites, validated against analytic limits. See [`research/README.md`](research/README.md).
 
 ---
 
